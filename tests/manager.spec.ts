@@ -12,9 +12,9 @@ const mockedDevices = [
   {
     getStringDescriptor: (idx, cb) => {
       if (idx === 1)
-        cb(null, '4D000042');
+        cb(undefined, '4D000042');
       else
-        cb(null, 'Huddly IQ');
+        cb(undefined, 'Huddly IQ');
     },
     deviceDescriptor: {
       idVendor: 0x2bd9,
@@ -34,9 +34,9 @@ const mockedDevices = [
   {
     getStringDescriptor: (idx, cb) => {
       if (idx === 1)
-        cb(null, '4D000043');
+        cb(undefined, '4D000043');
       else
-        cb(null, 'Huddly IQ');
+        cb(undefined, 'Huddly IQ');
     },
     deviceDescriptor: {
       idVendor: 0x2bd9,
@@ -55,9 +55,9 @@ const mockedDevices = [
   { // Not a Huddly IQ device
     getStringDescriptor: (idx, cb) => {
       if (idx === 1)
-        cb(null, 'ABCDSF');
+        cb(undefined, 'ABCDSF');
       else
-        cb(null, 'Non Huddly Device');
+        cb(undefined, 'Non Huddly Device');
     },
     deviceDescriptor: {
       idVendor: 0x2bd1,
@@ -73,7 +73,7 @@ const mockedDevices = [
     serialNumber: 'ABCDSF'
   }
 ];
-describe("HuddlyUsbDeviceManager", () => {
+describe('HuddlyUsbDeviceManager', () => {
   let devicemanager;
   beforeEach(() => {
     sinon.stub(usb, 'getDeviceList').returns(mockedDevices);
@@ -172,7 +172,7 @@ describe("HuddlyUsbDeviceManager", () => {
     });
   });
 
-  describe("#deviceList", () => {
+  describe('#deviceList', () => {
     it('should discover all huddly devices', async () => {
       const devices = await devicemanager.deviceList();
       expect(devices.length).to.equals(2);
@@ -197,14 +197,14 @@ describe("HuddlyUsbDeviceManager", () => {
     });
   });
 
-  describe("#fetchAndPopulateDevieParams", () => {
-    it("should fetch serial number and product number from device descriptor", async () => {
+  describe('#fetchAndPopulateDevieParams', () => {
+    it('should fetch serial number and product number from device descriptor', async () => {
       const huddlyUsbDevice = await devicemanager.fetchAndPopulateDevieParams(mockedDevices[0]);
       const generatedId = devicemanager.generateUsbUniqueId({
         usbBusNumber: mockedDevices[0].busNumber,
         usbDeviceAddress: mockedDevices[0].deviceAddress,
         usbPortNumbers: mockedDevices[0].portNumbers
-      })
+      });
       expect(huddlyUsbDevice.id).to.equal(generatedId);
       expect(huddlyUsbDevice.serialNumber).to.equal(mockedDevices[0].serialNumber);
       expect(huddlyUsbDevice.productName).to.equal('Huddly IQ');
@@ -212,9 +212,9 @@ describe("HuddlyUsbDeviceManager", () => {
       expect(huddlyUsbDevice.vendorId).to.equal(mockedDevices[0].deviceDescriptor.idVendor);
     });
 
-    it("should reject in case getStringDescriptor throws an error", async () => {
+    it('should reject in case getStringDescriptor throws an error', async () => {
       const mockedDev = {
-        getStringDescriptor: (idx, cb) => cb("Error", undefined),
+        getStringDescriptor: (idx, cb) => cb('Error', undefined),
         deviceDescriptor: { iSerialNumber: 1 },
         open: () => { }
       };

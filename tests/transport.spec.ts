@@ -24,7 +24,7 @@ const createNewTransportInstance = () => new NodeUsbTransport({
     {
       claim: () => { },
       release: (endpoints, cb) => {
-        cb(null);
+        cb(undefined);
       },
       descriptor: {
         bInterfaceClass: 255,
@@ -80,7 +80,7 @@ describe('UsbTransport', () => {
         close: () => { },
         interfaces: [{
           descriptor: { bInterfaceClass: 255 },
-          claim: () => { throw new Error('Cannot claim this interface!') },
+          claim: () => { throw new Error('Cannot claim this interface!'); },
         }]
       };
       try {
@@ -89,7 +89,7 @@ describe('UsbTransport', () => {
       } catch (e) {
         expect(e).to.equal('Error Occurred claiming interface! Error: Cannot claim this interface!');
       }
-    })
+    });
   });
 
   describe('#initEventLoop', () => {
@@ -177,21 +177,21 @@ describe('UsbTransport', () => {
   describe('#on', () => {
     it('should return an event emitter', () => {
       const on = transport.on('message', () => { });
-      expect(on).to.be.instanceof(NodeUsbTransport)
+      expect(on).to.be.instanceof(NodeUsbTransport);
     });
   });
 
   describe('#removeListener', () => {
     it('should return an event emitter', () => {
       const on = transport.removeListener('message', () => { });
-      expect(on).to.be.instanceof(NodeUsbTransport)
+      expect(on).to.be.instanceof(NodeUsbTransport);
     });
   });
 
   describe('#removeAllListeners', () => {
     it('should return an event emitter', () => {
       const on = transport.removeAllListeners('message');
-      expect(on).to.be.instanceof(NodeUsbTransport)
+      expect(on).to.be.instanceof(NodeUsbTransport);
     });
   });
 
@@ -217,7 +217,7 @@ describe('UsbTransport', () => {
         expect(spy.firstCall.args[0]).to.equals('timeout_msg');
         expect(e).to.equals('Request has timed out!');
       }
-    })
+    });
   });
 
   describe('#read', () => {
@@ -238,7 +238,7 @@ describe('UsbTransport', () => {
       await transport.init();
     });
 
-    afterEach(() => { transferStub.restore(); })
+    afterEach(() => { transferStub.restore(); });
 
     it('should package the message command and its payload and call transfer', async () => {
       await transport.write('echo-test', Buffer.alloc(0));
@@ -407,7 +407,7 @@ describe('UsbTransport', () => {
         cb();
       });
       transport.inEndpoint.transfer.callsFake((pkgSize, cb) => {
-        cb(null, Buffer.from('HLink v0'));
+        cb(undefined, Buffer.from('HLink v0'));
       });
       await transport.performHlinkHandshake();
 
@@ -426,7 +426,7 @@ describe('UsbTransport', () => {
         cb();
       });
       transport.inEndpoint.transfer.callsFake((pkgSize, cb) => {
-        cb(null, Buffer.from('Hlink v0000'));
+        cb(undefined, Buffer.from('Hlink v0000'));
       });
       try {
         await transport.performHlinkHandshake();

@@ -15,7 +15,8 @@
   "author": "Brikend Rama <brikend@huddly.com>",
   "homepage": "http://developer.huddly.com",
   "license": "MIT",
-  "main": "lib/index.js",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
   "directories": {
     "lib": "lib",
     "test": "tests"
@@ -33,7 +34,7 @@
   },
   "scripts": {
     "build": "npm run build-ts && npm run tslint",
-    "build-ts": "tsc",
+    "build-ts": "tsc --declaration",
     "watch-ts": "tsc -w",
     "tslint": "tslint -c tslint.json -p tsconfig.json",
     "test": "mocha -r ts-node/register --recursive \"tests/**/*.spec.ts\""
@@ -42,16 +43,16 @@
     "url": "https://github.com/Huddly/device-api-usb/issues"
   },
   "dependencies": {
+    "@huddly/sdk": "Huddly/sdk",
+    "@types/node": "^10.12.12",
     "global": "^4.3.2",
     "msgpack-lite": "^0.1.26",
     "p-queue": "^3.0.0",
-    "usb": "https://huddlysoftware.blob.core.windows.net/node-usb/nodeusb-prod-1.5.2.tar.gz",
-    "@huddly/sdk": "Huddly/sdk"
+    "typescript": "^3.2.1",
+    "usb": "https://huddlysoftware.blob.core.windows.net/node-usb/nodeusb-prod-1.5.2.tar.gz"
   },
   "devDependencies": {
-    "typescript": "^3.2.1",
     "@types/mocha": "^5.2.5",
-    "@types/node": "^10.12.0",
     "chai": "^4.2.0",
     "mocha": "^5.2.0",
     "sinon": "^7.0.0",

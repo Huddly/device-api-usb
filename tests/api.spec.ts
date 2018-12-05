@@ -12,12 +12,12 @@ chai.use(sinonChai);
 
 const mockedDevices = [
   {
-    productName: "Huddly IQ",
-    serialNumber: "123456"
+    productName: 'Huddly IQ',
+    serialNumber: '123456'
   },
   {
-    productName: "Huddly IQ",
-    serialNumber: "56789"
+    productName: 'Huddly IQ',
+    serialNumber: '56789'
   },
 ];
 
@@ -31,7 +31,7 @@ const dummyDeviceDiscoveryManager = {
   registerForHotplugEvents: () => { },
   deviceList: () => { return mockedDevices; },
   getDevice: () => { }
-}
+};
 
 describe('HuddlyDeviceApiUSB', () => {
   let deviceApi: HuddlyDeviceAPIUSB;
@@ -60,14 +60,14 @@ describe('HuddlyDeviceApiUSB', () => {
       await deviceApi.registerForHotplugEvents(emitter);
       expect(deviceApi.eventEmitter).to.be.instanceof(EventEmitter);
       expect(spy.callCount).to.equal(1);
-    })
+    });
   });
 
   describe('#getDeviceDiscoveryApi', () => {
     it('should return the device discovery manager instance', async () => {
       const deviceDiscoveryApi = await deviceApi.getDeviceDiscoveryAPI();
       expect(deviceDiscoveryApi).to.equal(dummyDeviceDiscoveryManager);
-    })
+    });
   });
 
   describe('#getValidatedTransport', () => {
@@ -78,7 +78,7 @@ describe('HuddlyDeviceApiUSB', () => {
     });
     afterEach(() => {
       getTransportStub.restore();
-    })
+    });
     it('should support device when hlink handshake succeeds', async () => {
       trasnportstub.performHlinkHandshake.returns(Promise.resolve());
       getTransportStub = sinon.stub(deviceApi, 'getTransport').returns(trasnportstub);
