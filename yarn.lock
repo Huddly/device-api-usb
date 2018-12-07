@@ -2,13 +2,14 @@
 # yarn lockfile v1
 
 
-"@huddly/sdk@^0.0":
-  version "0.0.1"
-  resolved "https://registry.yarnpkg.com/@huddly/sdk/-/sdk-0.0.1.tgz#5b9d95e4650ffd514c3cfe87b451bd6f1209b9b8"
+"@huddly/sdk@^0.0.2":
+  version "0.0.2"
+  resolved "https://registry.yarnpkg.com/@huddly/sdk/-/sdk-0.0.2.tgz#2a6cf768a443070848b3254362b4109897b5d99f"
   dependencies:
     "@types/node" "^10.12.12"
     jszip "^3.1.5"
     msgpack-lite "^0.1.26"
+    node-fetch "^2.3.0"
     p-queue "^3.0.0"
     typescript "^3.2.1"
 
@@ -405,6 +406,10 @@ nise@^1.4.6:
     lolex "^2.3.2"
     path-to-regexp "^1.7.0"
     text-encoding "^0.6.4"
+
+node-fetch@^2.3.0:
+  version "2.3.0"
+  resolved "https://registry.yarnpkg.com/node-fetch/-/node-fetch-2.3.0.tgz#1a1d940bbfb916a1d3e0219f037e89e71f8c5fa5"
 
 node-gyp-build@^3.4.0:
   version "3.5.1"
