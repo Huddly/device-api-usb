@@ -1,6 +1,6 @@
 {
-  "name": "@huddly-sdk/device-api-usb",
-  "version": "0.0.1",
+  "name": "@huddly/device-api-usb",
+  "version": "0.0.3",
   "description": "Huddly SDK device api which uses node-usb wrapper responsible for handling the transport layer of the communication and discovering the physical device/camera",
   "keywords": [
     "API",
@@ -14,19 +14,20 @@
   ],
   "author": "Brikend Rama <brikend@huddly.com>",
   "homepage": "http://developer.huddly.com",
-  "license": "MIT",
-  "main": "./lib/index.js",
-  "types": "./lib/index.d.ts",
+  "license": "UNLICENSED",
+  "main": "./lib/src/index.js",
+  "types": "./lib/src/index.d.ts",
   "directories": {
     "lib": "lib",
     "test": "tests"
   },
   "files": [
-    "lib"
+    "lib",
+    "README.md"
   ],
   "publishConfig": {
     "registry": "http://registry.npmjs.org/",
-    "access": "public"
+    "access": "restricted"
   },
   "repository": {
     "type": "git",
@@ -35,6 +36,7 @@
   "scripts": {
     "build": "npm run build-ts && npm run tslint",
     "build-ts": "tsc --declaration",
+    "publish-package": "npm run build && npm publish",
     "watch-ts": "tsc -w",
     "tslint": "tslint -c tslint.json -p tsconfig.json",
     "test": "mocha -r ts-node/register --recursive \"tests/**/*.spec.ts\""
@@ -43,7 +45,7 @@
     "url": "https://github.com/Huddly/device-api-usb/issues"
   },
   "dependencies": {
-    "@huddly/sdk": "Huddly/sdk",
+    "@huddly/sdk": "^0.0",
     "@types/node": "^10.12.12",
     "global": "^4.3.2",
     "msgpack-lite": "^0.1.26",

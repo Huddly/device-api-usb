@@ -1,4 +1,4 @@
-import ITransport from '@huddly/sdk/src/interfaces/iTransport';
+import ITransport from '@huddly/sdk/lib/src/interfaces/iTransport';
 import usb from 'usb';
 import MessagePacket from './messagepacket';
 import { EventEmitter } from 'events';

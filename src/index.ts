@@ -1,10 +1,10 @@
-import IHuddlyDeviceAPI from '@huddly/sdk/src/interfaces/iHuddlyDeviceAPI';
+import IHuddlyDeviceAPI from '@huddly/sdk/lib/src/interfaces/iHuddlyDeviceAPI';
 import NodeUsbTransport from './transport';
 import { EventEmitter } from 'events';
-import IUVCControlAPI from '@huddly/sdk/src/interfaces/iUVCControlApi';
-import ITransport from '@huddly/sdk/src/interfaces/iTransport';
+import IUVCControlAPI from '@huddly/sdk/lib/src/interfaces/iUVCControlApi';
+import ITransport from '@huddly/sdk/lib/src/interfaces/iTransport';
 import DeviceDiscoveryManager from './manager';
-import IDeviceDiscovery from '@huddly/sdk/src/interfaces/iDeviceDiscovery';
+import IDeviceDiscovery from '@huddly/sdk/lib/src/interfaces/iDeviceDiscovery';
 
 export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
   logger: any;
