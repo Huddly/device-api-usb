@@ -5,6 +5,7 @@ import IUVCControlAPI from '@huddly/sdk/lib/src/interfaces/iUVCControlApi';
 import ITransport from '@huddly/sdk/lib/src/interfaces/iTransport';
 import DeviceDiscoveryManager from './manager';
 import IDeviceDiscovery from '@huddly/sdk/lib/src/interfaces/iDeviceDiscovery';
+import DefaultLogger from './logger';
 
 export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
   logger: any;
@@ -14,7 +15,7 @@ export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
 
   constructor(logger: any, serialNumber?: any, manager?: any) {
     this.serialNumber = serialNumber;
-    this.logger = logger;
+    this.logger = logger ? logger : new DefaultLogger();
     this.deviceDiscoveryManager = manager ? manager : new DeviceDiscoveryManager();
   }
 
