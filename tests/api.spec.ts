@@ -36,7 +36,10 @@ const dummyDeviceDiscoveryManager = {
 describe('HuddlyDeviceApiUSB', () => {
   let deviceApi: HuddlyDeviceAPIUSB;
   beforeEach(() => {
-    deviceApi = new HuddlyDeviceAPIUSB(dummyLogger, '', dummyDeviceDiscoveryManager);
+    deviceApi = new HuddlyDeviceAPIUSB({
+      logger: dummyLogger,
+      manager: dummyDeviceDiscoveryManager
+    });
   });
 
   describe('#initialize', () => {
