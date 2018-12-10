@@ -3,20 +3,19 @@ import NodeUsbTransport from './transport';
 import { EventEmitter } from 'events';
 import IUVCControlAPI from '@huddly/sdk/lib/src/interfaces/iUVCControlApi';
 import ITransport from '@huddly/sdk/lib/src/interfaces/iTransport';
-import DeviceDiscoveryManager from './manager';
 import IDeviceDiscovery from '@huddly/sdk/lib/src/interfaces/iDeviceDiscovery';
+import DeviceApiOpts from '@huddly/sdk/lib/src/interfaces/IDeviceApiOpts';
+import DeviceDiscoveryManager from './manager';
 import DefaultLogger from './logger';
 
 export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
   logger: any;
-  serialNumber: any;
   eventEmitter: EventEmitter;
   deviceDiscoveryManager: DeviceDiscoveryManager;
 
-  constructor(logger: any, serialNumber?: any, manager?: any) {
-    this.serialNumber = serialNumber;
-    this.logger = logger ? logger : new DefaultLogger();
-    this.deviceDiscoveryManager = manager ? manager : new DeviceDiscoveryManager();
+  constructor(opts: DeviceApiOpts = {}) {
+    this.logger = opts.logger || new DefaultLogger();
+    this.deviceDiscoveryManager = opts.manager || new DeviceDiscoveryManager();
   }
 
   async initialize() {
