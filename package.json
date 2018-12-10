@@ -34,12 +34,13 @@
     "url": "git+https://github.com/Huddly/device-api-usb.git"
   },
   "scripts": {
-    "build": "npm run build-ts && npm run tslint",
+    "build": "npm run build-ts && npm run tslint && npm run test",
     "build-ts": "tsc --declaration",
     "publish-package": "npm run build && npm publish",
     "watch-ts": "tsc -w",
     "tslint": "tslint -c tslint.json -p tsconfig.json",
-    "test": "mocha -r ts-node/register --recursive \"tests/**/*.spec.ts\""
+    "test": "mocha -r ts-node/register --recursive \"lib/tests/**/*.spec.js\"",
+    "test-ts": "mocha -r ts-node/register --recursive \"tests/**/*.spec.ts\""
   },
   "bugs": {
     "url": "https://github.com/Huddly/device-api-usb/issues"
