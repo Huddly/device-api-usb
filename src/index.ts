@@ -19,13 +19,14 @@ export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
   }
 
   async initialize() {
-    const deviceList = await this.deviceDiscoveryManager.deviceList();
+    await this.deviceDiscoveryManager.discoverCameras();
+    // const deviceList = await this.deviceDiscoveryManager.deviceList();
 
-    deviceList.forEach(usbDevice => {
-      if (this.eventEmitter) {
-        this.eventEmitter.emit('ATTACH', usbDevice);
-      }
-    });
+    // deviceList.forEach(usbDevice => {
+    //   if (this.eventEmitter) {
+    //     this.eventEmitter.emit('ATTACH', usbDevice);
+    //   }
+    // });
   }
 
   registerForHotplugEvents(eventEmitter: EventEmitter): void {
