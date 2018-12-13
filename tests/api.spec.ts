@@ -29,6 +29,7 @@ const dummyLogger = {
 
 const dummyDeviceDiscoveryManager = {
   registerForHotplugEvents: () => { },
+  discoverCameras: () => { },
   deviceList: () => { return mockedDevices; },
   getDevice: () => { }
 };
@@ -43,15 +44,15 @@ describe('HuddlyDeviceApiUSB', () => {
   });
 
   describe('#initialize', () => {
-    it('should fetch all devices and emit attach events', async () => {
-      const emitter = new EventEmitter();
-      await deviceApi.registerForHotplugEvents(emitter);
-      const attachSpy = sinon.spy();
-      emitter.on('ATTACH', attachSpy);
+    let discoverCamerasStub;
+    beforeEach(() => {
+      discoverCamerasStub = sinon.stub(deviceApi.deviceDiscoveryManager, 'discoverCameras').resolves();
+    });
+    afterEach(() => discoverCamerasStub.restore());
+
+    it('should spin off the attach/detach event sequence', async () => {
       await deviceApi.initialize();
-      expect(attachSpy.callCount).to.equal(2);
-      expect(attachSpy.firstCall.args[0]).to.deep.equal(mockedDevices[0]);
-      expect(attachSpy.secondCall.args[0]).to.deep.equal(mockedDevices[1]);
+      expect(discoverCamerasStub.called).to.equal(true);
     });
   });
 

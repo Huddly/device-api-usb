@@ -3,8 +3,8 @@
 
 
 "@huddly/sdk@^0.0.4":
-  version "0.0.3"
-  resolved "https://registry.yarnpkg.com/@huddly/sdk/-/sdk-0.0.3.tgz#6975935f93de53b6a22560230ad199685e88a699"
+  version "0.0.4"
+  resolved "https://registry.yarnpkg.com/@huddly/sdk/-/sdk-0.0.4.tgz#4e25bb7737c44c8fc3e9a6f5ba5ed2e7fc644032"
   dependencies:
     "@types/node" "^10.12.12"
     jszip "^3.1.5"
@@ -106,6 +106,16 @@ buffer-from@^1.0.0, buffer-from@^1.1.0:
 builtin-modules@^1.1.1:
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/builtin-modules/-/builtin-modules-1.1.1.tgz#270f076c5a72c02f5b65a47df94c5fe3a278892f"
+
+chai-as-promised@^7.1.1:
+  version "7.1.1"
+  resolved "https://registry.yarnpkg.com/chai-as-promised/-/chai-as-promised-7.1.1.tgz#08645d825deb8696ee61725dbf590c012eb00ca0"
+  dependencies:
+    check-error "^1.0.2"
+
+chai-things@^0.2.0:
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/chai-things/-/chai-things-0.2.0.tgz#c55128378f9bb399e994f00052151984ed6ebe70"
 
 chai@^4.2.0:
   version "4.2.0"

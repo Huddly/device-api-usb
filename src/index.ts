@@ -15,18 +15,11 @@ export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
 
   constructor(opts: DeviceApiOpts = {}) {
     this.logger = opts.logger || new DefaultLogger();
-    this.deviceDiscoveryManager = opts.manager || new DeviceDiscoveryManager();
+    this.deviceDiscoveryManager = opts.manager || new DeviceDiscoveryManager(this.logger);
   }
 
   async initialize() {
     await this.deviceDiscoveryManager.discoverCameras();
-    // const deviceList = await this.deviceDiscoveryManager.deviceList();
-
-    // deviceList.forEach(usbDevice => {
-    //   if (this.eventEmitter) {
-    //     this.eventEmitter.emit('ATTACH', usbDevice);
-    //   }
-    // });
   }
 
   registerForHotplugEvents(eventEmitter: EventEmitter): void {

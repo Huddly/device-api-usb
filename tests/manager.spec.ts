@@ -4,9 +4,11 @@ import sinonChai from 'sinon-chai';
 import usb from 'usb';
 import DeviceDiscoveryManager from './../src/manager';
 import { EventEmitter } from 'events';
+import Logger from './../src/logger';
 
 chai.should();
 chai.use(sinonChai);
+chai.use(require('chai-things')).use(require('chai-as-promised'));
 
 const mockedDevices = [
   {
@@ -73,11 +75,14 @@ const mockedDevices = [
     serialNumber: 'ABCDSF'
   }
 ];
+
+const dummyLogger = sinon.createStubInstance(Logger);
+
 describe('HuddlyUsbDeviceManager', () => {
   let devicemanager;
   beforeEach(() => {
     sinon.stub(usb, 'getDeviceList').returns(mockedDevices);
-    devicemanager = new DeviceDiscoveryManager();
+    devicemanager = new DeviceDiscoveryManager(dummyLogger);
   });
 
   afterEach(() => {
@@ -95,6 +100,121 @@ describe('HuddlyUsbDeviceManager', () => {
     });
   });
 
+  describe('#getCacheDevice', () => {
+    it('should find cached device in attachedDevices list', () => {
+      devicemanager.attachedDevices.push(mockedDevices[0]);
+      const cacheDevice = devicemanager.getCachedDevice(mockedDevices[0]);
+      expect(cacheDevice).to.deep.equals(mockedDevices[0]);
+    });
+    it('should return undefined if not cached', () => {
+      devicemanager.attachedDevices.push(mockedDevices[0]);
+      const cacheDevice = devicemanager.getCachedDevice(mockedDevices[1]);
+      expect(cacheDevice).to.equals(undefined);
+    });
+  });
+
+  describe('#fetchAndPopulateDeviceParams', () => {
+    it('should fetch serial number and product number from device descriptor', async () => {
+      const huddlyUsbDevice = await devicemanager.fetchAndPopulateDeviceParams(mockedDevices[0]);
+      const generatedId = devicemanager.generateUsbUniqueId({
+        usbBusNumber: mockedDevices[0].busNumber,
+        usbDeviceAddress: mockedDevices[0].deviceAddress,
+        usbPortNumbers: mockedDevices[0].portNumbers
+      });
+      expect(huddlyUsbDevice.id).to.equal(generatedId);
+      expect(huddlyUsbDevice.serialNumber).to.equal(mockedDevices[0].serialNumber);
+      expect(huddlyUsbDevice.productName).to.equal('Huddly IQ');
+      expect(huddlyUsbDevice.productId).to.equal(mockedDevices[0].deviceDescriptor.idProduct);
+      expect(huddlyUsbDevice.vendorId).to.equal(mockedDevices[0].deviceDescriptor.idVendor);
+    });
+
+    it('should reject in case getStringDescriptor throws an error', () => {
+      const mockedDev = {
+        getStringDescriptor: (idx, cb) => cb('Error', undefined),
+        deviceDescriptor: { iSerialNumber: 1 },
+        open: () => { }
+      };
+      const fetchPromise = devicemanager.fetchAndPopulateDeviceParams(mockedDev);
+      return fetchPromise.should.be.rejectedWith('Error');
+    });
+
+    it('should re-throw error when not able to open the device', () => {
+      const buggyDevice = {
+        open: () => { throw new Error('Cant open Device!'); }
+      };
+      const fetchPromise = devicemanager.fetchAndPopulateDeviceParams(buggyDevice);
+      return fetchPromise.should.be.rejectedWith('Unable to fetch device parameters from usb descriptor! Error: Cant open Device!');
+    });
+  });
+
+  describe('#setDeviceUid', () => {
+    it('should generate a uid for the given device and set it to ID property', () => {
+      const newDevice: any = {
+        busNumber: 1,
+        deviceAddress: 2,
+        portNumbers: [1, 2]
+      };
+      devicemanager.setDeviceUid(newDevice);
+      expect(newDevice.id).to.equals('46790582');
+    });
+  });
+
+  describe('#isDeviceCached', () => {
+    const devices = [
+      { id: '123', serialNumber: 'SRL123' },
+      { id: '456', serialNumber: 'SRL456' },
+      { id: '789', serialNumber: 'SRL789' }
+    ];
+    beforeEach(() => {
+      devicemanager.attachedDevices = devices;
+    });
+
+    it('should find device with matching uid', () => {
+      const device = { id: '456' };
+      expect(devicemanager.isDeviceCached(device)).to.equals(true);
+    });
+    it('should find device with matching serialNumber', () => {
+      const device = { serialNumber: 'SRL789' };
+      expect(devicemanager.isDeviceCached(device)).to.equals(true);
+    });
+    it('should return false when none of properties match', () => {
+      const device = { id: '923', serialNumber: 'SRL923' };
+      expect(devicemanager.isDeviceCached(device)).to.equals(false);
+    });
+  });
+
+  describe('#updateCache', () => {
+    const devices = [
+      { id: '123', serialNumber: 'SRL123' },
+      { id: '456', serialNumber: 'SRL456' },
+      { id: '789', serialNumber: 'SRL789' }
+    ];
+    const newDevices = [
+      devices[0],
+      devices[1]
+    ];
+    const removedDevices = [
+      devices[2]
+    ];
+    beforeEach(() => {
+      devicemanager.attachedDevices.push(devices[2]);
+    });
+    afterEach(() => { devicemanager.attachedDevices = []; });
+
+    it('should add all new devices to the attachedDevices list', () => {
+      devicemanager.updateCache(newDevices, removedDevices);
+      expect(devicemanager.attachedDevices.length).to.equals(2);
+      expect(devicemanager.attachedDevices[0]).to.deep.equals(newDevices[0]);
+      expect(devicemanager.attachedDevices[1]).to.deep.equals(newDevices[1]);
+    });
+
+    it('should remove all detached devices from the attachedDevices list', () => {
+      devicemanager.updateCache(newDevices, removedDevices);
+      expect(devicemanager.attachedDevices[0]).to.not.deep.equals(newDevices[2]);
+      expect(devicemanager.attachedDevices[1]).to.not.deep.equals(newDevices[2]);
+    });
+  });
+
   describe('#registerForHotplugEvents', () => {
     describe('#onAttach', () => {
       let emitter;
@@ -106,6 +226,7 @@ describe('HuddlyUsbDeviceManager', () => {
 
       afterEach(() => {
         usb.on.restore();
+        devicemanager.destroy();
       });
 
       it('should emit USB_ATTACH when a huddly device is attached', async () => {
@@ -156,7 +277,7 @@ describe('HuddlyUsbDeviceManager', () => {
         devicemanager.registerForHotplugEvents(emitter);
         const cachedDevice = Object.assign({}, mockedDevices[0]);
         cachedDevice['serialNumber'] = cachedDevice.serialNumber;
-        devicemanager.cacheUsbDevice(cachedDevice);
+        devicemanager.updateCache([cachedDevice], []);
         await detachStub.callArgWith(1, cachedDevice);
         expect(detachSpy.callCount).to.equal(1);
         expect(detachSpy.firstCall.args[0]).to.equal(cachedDevice.serialNumber);
@@ -170,13 +291,92 @@ describe('HuddlyUsbDeviceManager', () => {
         expect(detachSpy.callCount).to.equal(0);
       });
     });
+
+    describe('on hotplug event not support', () => {
+      let attachStub;
+      let clock;
+      beforeEach(() => {
+        clock = sinon.useFakeTimers();
+        attachStub = sinon.stub(usb, 'on').throws('Hotplug Events not supported!');
+      });
+      afterEach(() => {
+        attachStub.restore();
+        clock.restore();
+      });
+      it('should start discovery poll', () => {
+        const spy = sinon.spy(devicemanager, 'discoverCameras');
+        devicemanager.registerForHotplugEvents(new EventEmitter());
+        clock.tick(1000);
+        expect(spy.called).to.equals(true);
+      });
+    });
+  });
+
+  describe('#disoverCameras', () => {
+    let emitter;
+    let clock;
+    let deviceListStub;
+    beforeEach(() => {
+      emitter = new EventEmitter();
+      clock = sinon.useFakeTimers();
+      sinon.stub(usb, 'on').throws('Hotplug Events not supported!');
+      deviceListStub = sinon.stub(devicemanager, 'deviceList').resolves({
+        newDevices: [
+          { id: '123', serialNumber: 'SRL123'}
+        ],
+        removedDevices: [
+          { id: '456', serialNumber: 'SRL456' }
+        ]
+      });
+    });
+    afterEach(() => {
+      usb.on.restore();
+      clock.restore();
+      deviceListStub.restore();
+      devicemanager.destroy();
+    });
+    it('should fire attach events for all new discovered cameras', (done) => {
+      devicemanager.registerForHotplugEvents(emitter);
+      emitter.on('ATTACH', (device) => {
+        expect(device.serialNumber).to.equals('SRL123');
+        done();
+      });
+      clock.tick(1500);
+    });
+    it('should fire detach events for all undiscovered cached cameras', (done) => {
+      devicemanager.registerForHotplugEvents(emitter);
+      emitter.on('DETACH', (serialNumber) => {
+        expect(serialNumber).to.equals('SRL456');
+        done();
+      });
+      clock.tick(1500);
+    });
   });
 
   describe('#deviceList', () => {
-    it('should discover all huddly devices', async () => {
-      const devices = await devicemanager.deviceList();
+    const detachedDevice = { id: '123', serialNumber: 'SRL123' };
+    beforeEach(() => {
+      /* Add device that is not returned from `usb.deviceList`.
+       * This device will serve as a detached device.
+      */
+      devicemanager.attachedDevices.push(detachedDevice);
+    });
+    afterEach(() => { devicemanager.attachedDevices = []; });
+
+    it('should update cache with new devices', async () => {
+      const { devices } = await devicemanager.deviceList();
       expect(devices.length).to.equals(2);
       expect(devicemanager.attachedDevices.length).to.equal(2);
+    });
+
+    it('should return proper elements on the return object', async () => {
+      const { devices, newDevices, removedDevices } = await devicemanager.deviceList();
+      expect(devices.length).to.equals(2);
+      expect(newDevices.length).to.equals(2);
+      expect(newDevices[0]).to.deep.equals(mockedDevices[0]);
+      expect(newDevices[1]).to.deep.equals(mockedDevices[1]);
+      expect(removedDevices.length).to.equals(1);
+      expect(removedDevices[0]).to.deep.equals(detachedDevice);
     });
   });
 
@@ -194,55 +394,6 @@ describe('HuddlyUsbDeviceManager', () => {
     it('should return the specific attachedDevice when serial number provided', async () => {
       const device = await devicemanager.getDevice(mockedDevices[1].serialNumber);
       expect(device.serialNumber).to.equal(mockedDevices[1].serialNumber);
-    });
-  });
-
-  describe('#fetchAndPopulateDevieParams', () => {
-    it('should fetch serial number and product number from device descriptor', async () => {
-      const huddlyUsbDevice = await devicemanager.fetchAndPopulateDevieParams(mockedDevices[0]);
-      const generatedId = devicemanager.generateUsbUniqueId({
-        usbBusNumber: mockedDevices[0].busNumber,
-        usbDeviceAddress: mockedDevices[0].deviceAddress,
-        usbPortNumbers: mockedDevices[0].portNumbers
-      });
-      expect(huddlyUsbDevice.id).to.equal(generatedId);
-      expect(huddlyUsbDevice.serialNumber).to.equal(mockedDevices[0].serialNumber);
-      expect(huddlyUsbDevice.productName).to.equal('Huddly IQ');
-      expect(huddlyUsbDevice.productId).to.equal(mockedDevices[0].deviceDescriptor.idProduct);
-      expect(huddlyUsbDevice.vendorId).to.equal(mockedDevices[0].deviceDescriptor.idVendor);
-    });
-
-    it('should reject in case getStringDescriptor throws an error', async () => {
-      const mockedDev = {
-        getStringDescriptor: (idx, cb) => cb('Error', undefined),
-        deviceDescriptor: { iSerialNumber: 1 },
-        open: () => { }
-      };
-      try {
-        await devicemanager.fetchAndPopulateDevieParams(mockedDev);
-        expect(true).to.equal(false);
-      } catch (e) {
-        expect(e).to.equal('Error');
-      }
-    });
-  });
-
-  describe('#cacheUsbDevice', () => {
-    it('should add device to attachedDevices list if it doesnt exist', () => {
-      expect(devicemanager.attachedDevices.length).to.equal(0);
-      devicemanager.cacheUsbDevice(mockedDevices[0]);
-      expect(devicemanager.attachedDevices.length).to.equal(1);
-      expect(devicemanager.attachedDevices[0]).to.deep.equal({
-        id: mockedDevices[0].id,
-        serialNumber: mockedDevices[0].serialNumber
-      });
-    });
-
-    it('should not add same device twice on attachedDevices', () => {
-      devicemanager.cacheUsbDevice(mockedDevices[0]);
-      expect(devicemanager.attachedDevices.length).to.equal(1);
-      devicemanager.cacheUsbDevice(mockedDevices[0]);
-      expect(devicemanager.attachedDevices.length).to.equal(1);
     });
   });
 });
