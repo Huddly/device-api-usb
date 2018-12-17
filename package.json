@@ -1,6 +1,6 @@
 {
   "name": "@huddly/device-api-usb",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Huddly SDK device api which uses node-usb wrapper responsible for handling the transport layer of the communication and discovering the physical device/camera",
   "keywords": [
     "API",
@@ -12,9 +12,9 @@
     "Device",
     "Discovery"
   ],
-  "author": "Brikend Rama <brikend@huddly.com>",
+  "author": "Huddly AS <npm@huddly.com>",
   "homepage": "http://developer.huddly.com",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "main": "./lib/src/index.js",
   "types": "./lib/src/index.d.ts",
   "directories": {
@@ -27,7 +27,7 @@
   ],
   "publishConfig": {
     "registry": "http://registry.npmjs.org/",
-    "access": "restricted"
+    "access": "public"
   },
   "repository": {
     "type": "git",
