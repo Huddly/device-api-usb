@@ -46,7 +46,7 @@
     "url": "https://github.com/Huddly/device-api-usb/issues"
   },
   "dependencies": {
-    "@huddly/sdk": "^0.0.4",
+    "@huddly/sdk": "^0.0.7",
     "@types/node": "^10.12.12",
     "global": "^4.3.2",
     "msgpack-lite": "^0.1.26",
