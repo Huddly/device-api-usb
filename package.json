@@ -39,8 +39,27 @@
     "publish-package": "npm run build && npm publish",
     "watch-ts": "tsc -w",
     "tslint": "tslint -c tslint.json -p tsconfig.json",
-    "test": "mocha -r ts-node/register --recursive \"tests/**/*.spec.ts\"",
+    "test": "nyc mocha -r ts-node/register --recursive \"tests/**/*.spec.ts\" --check-leaks",
     "test-js": "mocha -r ts-node/register --recursive \"lib/tests/**/*.spec.js\""
+  },
+  "nyc": {
+    "include": [
+      "src/**/*.ts",
+      "src/**/*.tsx"
+    ],
+    "extension": [
+      ".ts",
+      ".tsx"
+    ],
+    "require": [
+      "ts-node/register"
+    ],
+    "reporter": [
+      "text-summary",
+      "html"
+    ],
+    "sourceMap": true,
+    "instrument": true
   },
   "bugs": {
     "url": "https://github.com/Huddly/device-api-usb/issues"
@@ -60,8 +79,10 @@
     "chai-as-promised": "^7.1.1",
     "chai-things": "^0.2.0",
     "mocha": "^5.2.0",
+    "nyc": "^13.1.0",
     "sinon": "^7.0.0",
     "sinon-chai": "^3.2.0",
+    "source-map-support": "^0.5.9",
     "ts-node": "^7.0.1",
     "tslint": "^5.11.0"
   }

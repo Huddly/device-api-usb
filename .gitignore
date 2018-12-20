@@ -5,3 +5,5 @@ lib
 packages
 .idea
 .DS_Store
+coverage
+.nyc_output
