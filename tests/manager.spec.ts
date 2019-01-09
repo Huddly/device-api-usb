@@ -229,15 +229,18 @@ describe('HuddlyUsbDeviceManager', () => {
         devicemanager.destroy();
       });
 
-      it('should emit USB_ATTACH when a huddly device is attached', async () => {
-        const attachSpy = sinon.spy();
-        emitter.on('ATTACH', attachSpy);
+      it('should emit USB_ATTACH when a huddly device is attached', () => {
+        const attachPromise = new Promise((resolve) => {
+          emitter.on('ATTACH', (device) => {
+            expect(device.serialNumber).to.equal(mockedDevices[0].serialNumber);
+            expect(device.productName).to.equal('Huddly IQ');
+            expect(devicemanager.attachedDevices.length).to.equal(1);
+            resolve();
+          });
+        });
         devicemanager.registerForHotplugEvents(emitter);
-        await attachStub.callArgWith(1, mockedDevices[0]);
-        expect(attachSpy.callCount).to.equal(1);
-        expect(attachSpy.firstCall.args[0].serialNumber).to.equal(mockedDevices[0].serialNumber);
-        expect(attachSpy.firstCall.args[0].productName).to.equal('Huddly IQ');
-        expect(devicemanager.attachedDevices.length).to.equal(1);
+        attachStub.callArgWith(1, mockedDevices[0]);
+        return attachPromise;
       });
 
       it('should not emit USB_ATTACH when other devices are attached', async () => {
@@ -262,25 +265,32 @@ describe('HuddlyUsbDeviceManager', () => {
         usb.on.restore();
       });
 
-      it('should emit USB_DETACH with unique id if the device was not cached', async () => {
-        const detachSpy = sinon.spy();
-        emitter.on('DETACH', detachSpy);
+      it('should emit USB_DETACH with unique id if the device was not cached', () => {
+        const detachPromise = new Promise((resolve) => {
+          emitter.on('DETACH', (deviceId) => {
+            expect(deviceId).to.equal(mockedDevices[0].id);
+            resolve();
+          });
+        });
         devicemanager.registerForHotplugEvents(emitter);
-        await detachStub.callArgWith(1, mockedDevices[0]);
-        expect(detachSpy.callCount).to.equal(1);
-        expect(detachSpy.firstCall.args[0]).to.equal(mockedDevices[0].id);
+        detachStub.callArgWith(1, mockedDevices[0]);
+        return detachPromise;
       });
 
-      it('should emit USB_DETACH with serial number when the device was cached', async () => {
-        const detachSpy = sinon.spy();
-        emitter.on('DETACH', detachSpy);
+      it('should emit USB_DETACH with serial number when the device was cached', () => {
         devicemanager.registerForHotplugEvents(emitter);
         const cachedDevice = Object.assign({}, mockedDevices[0]);
         cachedDevice['serialNumber'] = cachedDevice.serialNumber;
         devicemanager.updateCache([cachedDevice], []);
-        await detachStub.callArgWith(1, cachedDevice);
-        expect(detachSpy.callCount).to.equal(1);
-        expect(detachSpy.firstCall.args[0]).to.equal(cachedDevice.serialNumber);
+
+        const detachPromise = new Promise((resolve) => {
+          emitter.on('DETACH', (deviceId) => {
+            expect(deviceId).to.equal(cachedDevice.serialNumber);
+            resolve();
+          });
+        });
+        detachStub.callArgWith(1, cachedDevice);
+        return detachPromise;
       });
 
       it('should not emit USB_DETACH when other devices are detached', async () => {

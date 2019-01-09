@@ -15,7 +15,7 @@ export default class MessagePacket {
 
   static createMessage(message: string, payload: any, fullPayloadSize?: number): Buffer {
     const messageBuffer = Buffer.from(message);
-    const hdrBuffer = new Buffer(MessagePacket.HEADER_SIZES.HDR_SIZE);
+    const hdrBuffer = Buffer.alloc(MessagePacket.HEADER_SIZES.HDR_SIZE);
     let payloadBuffer = Buffer.from(payload);
     if (payload instanceof Buffer) {
       payloadBuffer = payload;
