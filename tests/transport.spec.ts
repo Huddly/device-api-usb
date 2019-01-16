@@ -161,15 +161,16 @@ describe('UsbTransport', () => {
 
     describe('on hlink reset sequence', () => {
       it('should throw an error and close connection', async () => {
+        let resolveReset;
+        const resetPromise = new Promise(resolve => resolveReset = resolve);
         await transport.init();
         transport.inEndpoint.on.withArgs('data').callsFake((msg, cb) => cb(Buffer.from('HLink v0')));
-        try {
-          await transport.startListen();
-          expect(true).to.equals(false);
-        } catch (e) {
-          expect(closeStub.callCount).to.equals(1);
-          expect(e.message).to.equals('Received a reset sequence message from target during read!');
-        }
+        transport.inEndpoint.stopPoll.resolves({});
+        transport.on('TRANSPORT_RESET', resolveReset);
+        await transport.startListen();
+
+        await resetPromise;
+        expect(closeStub.callCount).to.equals(1);
       });
     });
   });

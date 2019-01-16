@@ -100,7 +100,11 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
           resolve();
         }
       } catch (err) {
-        this.closeDevice();
+        try {
+          this.closeDevice();
+        } catch (e) {
+          this.logger.warn('Unable close device on init error.');
+        }
         if (err.errno === usb.LIBUSB_ERROR_ACCESS) {
           this.logger.warn('Unable to claim usb interface. Please make sure the device is not used by another process!');
           reject(`Unable to claim usb interface. Please make sure the device is not used by another process!`);
@@ -133,12 +137,18 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
       this.emit(result.message, result);
     };
 
-    this.inEndpoint.on('data', (buff) => {
+    this.inEndpoint.on('data', async (buff) => {
       if (currentState === this.READ_STATES.NEW_READ) {
         if (buff.length < MessagePacket.HEADER_SIZES.HDR_SIZE) {
           this.logger.warn('Unable to proceed with reading! Target returned a reset sequence during read!');
-          this.close();
-          throw new Error('Received a reset sequence message from target during read!');
+          try {
+            await this.stopEventLoop();
+            await this.close();
+          } catch (e) {
+            this.logger.warn(`On transport reset it did not close properly ${e}`);
+          }
+          this.emit('TRANSPORT_RESET');
+          return;
         }
         chunks.push(buff);
         currentSize += buff.length;
@@ -314,7 +324,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
             reject(`Transfer failed! ${outTError}`);
           }
         } else {
-          resolve();
+          setImmediate(resolve);
         }
       });
     });
