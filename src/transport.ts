@@ -207,7 +207,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
       }, timeout);
       this.once(msg, res => {
         clearTimeout(timer);
-        resolve(res)
+        resolve(res);
       });
     });
   }

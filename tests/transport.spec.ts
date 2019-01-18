@@ -200,24 +200,50 @@ describe('UsbTransport', () => {
     let onStub;
     beforeEach(() => {
       onStub = sinon.stub(transport, 'once');
+      this.clock = sinon.useFakeTimers();
     });
-    afterEach(() => { onStub.restore(); });
+
+    afterEach(() => {
+      onStub.restore();
+      this.clock.restore();
+    });
+
     it('should resolve `once` the message is emitted from super class', async () => {
       const msg = { name: 'hello', payload: 'hello_back' };
       onStub.callsFake((message, cb) => {
         cb(msg);
       });
       const t = await transport.receiveMessage('hello', 500);
+      this.clock.tick(510);
+
       expect(t).to.deep.equals(msg);
     });
+
     it('should reject with timeout error message when timeout exceeded waiting for message to be emitted', async () => {
       const spy = sinon.spy(transport, 'removeAllListeners');
       try {
-        await transport.receiveMessage('timeout_msg', 10);
+        const p = transport.receiveMessage('timeout_msg', 10);
+        this.clock.tick(100);
+        await p;
       } catch (e) {
-        expect(spy.firstCall.args[0]).to.equals('timeout_msg');
+        expect(transport.removeAllListeners).to.have.been.calledWith('timeout_msg');
         expect(e).to.equals('Request has timed out!');
       }
+    });
+
+    it('should resolve when message comes through, other listeners should stay intact', async () => {
+      const msg = { name: 'hello', payload: 'hello_back' };
+      const messageSpy = sinon.spy();
+      onStub.callsFake((message, cb) => {
+        cb(msg);
+      });
+      transport.on('test-subscribe', messageSpy);
+      await transport.receiveMessage('test-subscribe', 500);
+      this.clock.tick(510);
+
+      transport.emit('test-subscribe');
+
+      expect(messageSpy).to.have.callCount(1);
     });
   });
 
