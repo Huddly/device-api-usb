@@ -282,6 +282,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
       if (this.device) {
         try {
           this.device.close();
+          this._device = undefined;
           resolve();
         } catch (e) {
           reject(`Cannot close usb device! Error: ${e}`);
