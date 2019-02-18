@@ -108,7 +108,6 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
       });
     } catch (e) {
       this.logger.warn('Node-USB Hotplug Events not supported on this machine. Falling back to discovery poll!');
-      this.logger.warn(e);
       this.pollInterval = setInterval(() => this.discoverCameras(), 1000);
     }
   }
