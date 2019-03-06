@@ -71,7 +71,8 @@
     "msgpack-lite": "^0.1.26",
     "p-queue": "^3.0.0",
     "typescript": "^3.2.1",
-    "usb": "https://huddlysoftware.blob.core.windows.net/node-usb/nodeusb-prod-1.5.3.tar.gz"
+    "usb": "https://huddlysoftware.blob.core.windows.net/node-usb/nodeusb-prod-1.5.3.tar.gz",
+    "bulk_usb": "git+ssh://git@github.com:Huddly/hpk-upgrade.cpp.git"
   },
   "devDependencies": {
     "@types/mocha": "^5.2.5",
