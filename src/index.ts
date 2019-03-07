@@ -19,7 +19,6 @@ export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
   }
 
   async initialize() {
-    await this.deviceDiscoveryManager.discoverCameras();
   }
 
   registerForHotplugEvents(eventEmitter: EventEmitter): void {
@@ -44,7 +43,9 @@ export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
   }
 
   async getTransport(device): Promise<NodeUsbTransport> {
-    const usbDevice = await this.deviceDiscoveryManager.getDevice(device.serialNumber);
+    // const usbDevice = await this.deviceDiscoveryManager.getDevice(device.serialNumber);
+
+    const usbDevice = device;
     const transport = new NodeUsbTransport(usbDevice, this.logger);
     await transport.init();
     return transport;

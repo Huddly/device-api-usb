@@ -93,11 +93,14 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
   }
 
   async init(): Promise<any> {
-    await this.sleep();
     if (!this.device.endpoint) {
-      const endpoint = await this.device.open();
-      this.endpoint = endpoint;
-      this.device.endpoint = endpoint;
+      try {
+        const endpoint = await this.device.open();
+        this.endpoint = endpoint;
+        this.device.endpoint = endpoint;
+      } catch (e) {
+        throw e;
+      }
     } else {
       this.endpoint = this.device.endpoint;
     }
@@ -112,15 +115,18 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
       return Promise.resolve();
     }
     let isAttached = true;
+
+    this.device.onDetach(() => {
+      isAttached = false;
+    });
     this.running = true;
     this.device.isAttached = true;
-    // this.device.onDetach(() => isAttached = false);
     while (isAttached && this.running) {
       try {
         await this.sendMessage();
         await this.readMessage();
       } catch (e) {
-        if (e === 'LIBUSB_NO_DEVICE') {
+        if (e.message === 'LIBUSB_NO_DEVICE') {
           isAttached = false;
         }
         throw e;
@@ -134,28 +140,30 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
       const sendMessage = this.sendQueue.shift();
       const { reject, resolve, msgBuffer } = sendMessage;
       try {
-          await this.transfer(msgBuffer);
-          resolve();
+        await this.transfer(msgBuffer);
+        resolve();
       } catch (e) {
-          if (e === 'LIBUSB_ERROR_TIMEOUT') {
-              throw e;
-          }
-          reject(e);
+        if (e.message === 'LIBUSB_ERROR_TIMEOUT') {
+            throw e;
+        }
+        reject(e);
       }
     }
   }
 
   async readMessage(): Promise<void> {
     let headerBuffer: Buffer;
+    if (!this.endpoint) {
+      throw new Error('Reading from closed endpoint');
+    }
     do {
       let uint8Buf: Buffer;
       try {
         uint8Buf = await this.endpoint.read(4096, HEADER_TIMEOUT_MS);
       } catch (e) {
-        if (e === 'LIBUSB_ERROR_TIMEOUT') {
+        if (e.message === 'LIBUSB_ERROR_TIMEOUT') {
           return;
         }
-        console.log('--------------------- error READ ------------------------', e);
         throw e;
       }
       headerBuffer = Buffer.from(uint8Buf);
@@ -164,12 +172,19 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
       }
     } while (headerBuffer.length === 0);
 
+    if (headerBuffer.length < MessagePacket.HEADER_SIZES.HDR_SIZE) {
+      throw new Error(`Hlink: header is too small ${headerBuffer.length}`);
+    }
+
     const parsedChunk = MessagePacket.parseMessage(headerBuffer);
     const expectedSize = MessagePacket.HEADER_SIZES.HDR_SIZE + parsedChunk.messageSize + parsedChunk.payloadSize;
     const chunks = [headerBuffer];
 
     for (let currentLength = headerBuffer.length; currentLength < expectedSize;) {
       try {
+        if (!this.endpoint) {
+          throw new Error('Reading from closed endpoint');
+        }
         const buf = await this.endpoint.read(
           Math.min(AlignUp(expectedSize - currentLength, 1024), MAX_USB_PACKET),
           this.timeoutMs
@@ -177,7 +192,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
           chunks.push(Buffer.from(buf));
           currentLength += buf.length;
         } catch (e) {
-        if (e === 'LIBUSB_ERROR_TIMEOUT') {
+        if (e.message === 'LIBUSB_ERROR_TIMEOUT') {
           continue;
         }
         throw new Error(`read loop failed ${e}`);
@@ -260,9 +275,6 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
       this.removeAllListeners();
       if (this.running) {
         this.running = false;
-        //TODO: remove hack
-        this.device.isAttached = false;
-        // clearTimeout(this.listenerTimeoutId);
       } else {
         resolve();
       }
@@ -277,14 +289,14 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     return Promise.reject('Unable to claim interface of an uninitialized device!');
   }
 
-  async cancelTransfers(): Promise<any> {
-    //TODO: Remove
-  }
-
   async closeDevice(): Promise<any> {
     const endpoint = this.endpoint;
     this.endpoint = undefined;
-    await endpoint.close();
+    try {
+      await endpoint.close();
+    } catch (e) {
+      // Failing on closing on endpoint is ok
+    }
     this._device = undefined;
   }
 
@@ -295,7 +307,8 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
   async transfer(messageBuffer: Buffer) {
     for (let i = 0; i < messageBuffer.length; i += this.MAX_PACKET_SIZE) {
       const chunk = messageBuffer.slice(i, i + this.MAX_PACKET_SIZE);
-      await this.sendBulkChunk(chunk);
+      debugger;
+      await this.sendChunk(chunk);
     }
   }
 
@@ -303,33 +316,17 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     return this.endpoint.read(packetSize, this.timeoutMs);
   }
 
-  async sendBulkChunk(chunk: Buffer): Promise<any> {
+  async sendChunk(chunk: Buffer): Promise<any> {
+    if (!this.endpoint) {
+      throw new Error('Writing from closed endpoint');
+    }
     return this.endpoint.write(chunk, 10000);
   }
 
-  async sendChunk(chunk: Buffer): Promise<any> {
-    throw new Error('-------------- Legacy ----------------- wirte ------------');
-    // return new Promise((resolve, reject) => {
-    //   this.outEndpoint.transfer(chunk, (outTError) => {
-    //     if (outTError) {
-    //       if (outTError.errno === usb.LIBUSB_ERROR_PIPE && this.outEndpoint) {
-    //         this.outEndpoint.clearHalt((haltError) =>
-    //           reject(`Clear halt failed on out endpoint!${haltError ? ` Error: ${haltError}` : ''}`)
-    //         );
-    //       } else {
-    //         reject(`Transfer failed! ${outTError}`);
-    //       }
-    //     } else {
-    //       setImmediate(resolve);
-    //     }
-    //   });
-    // });
-  }
-
   async performHlinkHandshake(): Promise<any> {
-    const cmds = []
-    cmds.push(this.sendBulkChunk(Buffer.alloc(0)));
-    cmds.push(this.sendBulkChunk(Buffer.alloc(1, 0x00)));
+    const cmds = [];
+    cmds.push(this.sendChunk(Buffer.alloc(0)));
+    cmds.push(this.sendChunk(Buffer.alloc(1, 0x00)));
     cmds.push(this.readChunk(1024));
     const [, , res] = await Promise.all(cmds);
     const decodedMsg = Buffer.from(res).toString('utf8');

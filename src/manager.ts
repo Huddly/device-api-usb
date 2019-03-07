@@ -32,15 +32,14 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
 
   registerForHotplugEvents(eventEmitter: EventEmitter): void {
     this.eventEmitter = eventEmitter;
-    this.logger.warn('Node-USB Hotplug Events not supported on this machine. Falling back to discovery poll!');
-    this.pollInterval = setInterval(() => this.discoverCameras(), 1000);
+    this.discoverCameras();
   }
 
   private setDeviceUid(device: any) {
     const uid = this.generateUsbUniqueId({
-      usbBusNumber: 1, //device.busNumber,
-      usbDeviceAddress: 2, //device.deviceAddress,
-      usbPortNumbers: [3] //device.portNumbers
+      usbBusNumber: device.location[0],
+      usbDeviceAddress: device.location[1],
+      usbPortNumbers: device.location[0],
     });
     device.productId = device.pid;
     device.id = uid;
@@ -65,47 +64,27 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
     }
   }
 
-  async discoverCameras(): Promise<void> {
-    const { newDevices, removedDevices } = await this.deviceList();
-    newDevices.forEach(newDevice => this.eventEmitter.emit('ATTACH', newDevice));
-    removedDevices.forEach(removedDevice => this.eventEmitter.emit('DETACH', removedDevice.serialNumber));
+  discoverCameras(): void {
+    BulkUsb.onAttach(this.deviceAttached.bind(this));
+  }
+
+  private deviceAttached(newDevice): void {
+    if (newDevice.vid !== 0x2bd9) {
+      return;
+    }
+    this.setDeviceUid(newDevice);
+    newDevice.onDetach(this.deviceDetached.bind(this));
+    this.updateCache([newDevice], []);
+    this.eventEmitter.emit('ATTACH', newDevice);
+  }
+
+  private deviceDetached(removedDevice): void {
+    this.updateCache([], [removedDevice]);
+    this.eventEmitter.emit('DETACH', removedDevice);
   }
 
   async deviceList(): Promise<any> {
-    let removedDevices = [];
-    const isAllAttached = this.attachedDevices.every(d => d.isAttached);
-    if (this.attachedDevices.length > 0 && isAllAttached) {
-      return Promise.resolve({
-        devices: this.attachedDevices,
-        newDevices: [],
-        removedDevices: [],
-      });
-    }
-
-    removedDevices = this.attachedDevices.filter(d => !d.isAttached);
-    const devices =  await BulkUsb.getDeviceList();
-
-    const usbDevices = devices
-    .filter(d => d.vid === 0x2bd9);
-
-    const newDevices = [];
-    for (let idx = 0; idx < usbDevices.length; idx++) {
-      const usbDevice = usbDevices[idx];
-      usbDevice.isAttached = true;
-      this.setDeviceUid(usbDevice);
-      // if (!this.isDeviceCached(usbDevice)) {
-        newDevices.push(usbDevice);
-      // }
-    }
-
-    // newDevices.forEach(d => d.onAttach(this.eventEmitter.emit('DETACH', d.serialNumber)));
-
-    // const removedDevices = this.attachedDevices.filter(({ id, serialNumber }) => {
-    //   return usbDevices.every((device) => device.serialNumber !== serialNumber);
-    // });
-
-    this.updateCache(newDevices, removedDevices);
-    return { devices: usbDevices, newDevices: newDevices, removedDevices: removedDevices };
+    return { devices: this.attachedDevices, newDevices: [], removedDevices: [] };
   }
 
   async getDevice(serialNumber: any): Promise<any> {
