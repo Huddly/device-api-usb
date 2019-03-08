@@ -69,7 +69,7 @@
     "@types/node": "^11.9.0",
     "global": "^4.3.2",
     "msgpack-lite": "^0.1.26",
-    "p-queue": "^3.0.0",
+    "p-queue": "^4.0.0",
     "typescript": "^3.2.1",
     "usb": "https://huddlysoftware.blob.core.windows.net/node-usb/nodeusb-prod-1.5.3.tar.gz"
   },
