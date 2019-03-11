@@ -1,4 +1,3 @@
-import usb from 'usb';
 import BulkUsb from 'bulk_usb';
 import EventEmitter from 'events';
 import IDeviceDiscovery from '@huddly/sdk/lib/src/interfaces/iDeviceDiscovery';
@@ -35,14 +34,33 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
     this.discoverCameras();
   }
 
-  private setDeviceUid(device: any) {
+  private getDeviceObject(device: any) {
+    //Todo: do something that makes sense here
+
     const uid = this.generateUsbUniqueId({
       usbBusNumber: device.location[0],
       usbDeviceAddress: device.location[1],
       usbPortNumbers: device.location[0],
     });
-    device.productId = device.pid;
-    device.id = uid;
+
+    let name;
+    switch (device.pid) {
+      case 0x11:
+        name = 'Huddly GO';
+        break;
+      case 0x21:
+        name = 'Huddly IQ';
+        break;
+      default:
+        throw new Error('Unknown device');
+    }
+
+    return {
+      ...device,
+      id: uid,
+      productId: device.pid,
+      productName: name,
+    };
   }
 
   private isDeviceCached(device: any): boolean {
@@ -68,19 +86,22 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
     BulkUsb.onAttach(this.deviceAttached.bind(this));
   }
 
-  private deviceAttached(newDevice): void {
-    if (newDevice.vid !== 0x2bd9) {
+  private deviceAttached(attachedDevice): void {
+    if (attachedDevice.vid !== this.HUDDLY_VID) {
       return;
     }
-    this.setDeviceUid(newDevice);
+    const newDevice = this.getDeviceObject(attachedDevice);
     newDevice.onDetach(this.deviceDetached.bind(this));
     this.updateCache([newDevice], []);
     this.eventEmitter.emit('ATTACH', newDevice);
   }
 
   private deviceDetached(removedDevice): void {
+    if (removedDevice.vid !== this.HUDDLY_VID) {
+      return;
+    }
     this.updateCache([], [removedDevice]);
-    this.eventEmitter.emit('DETACH', removedDevice);
+    this.eventEmitter.emit('DETACH', removedDevice.serial);
   }
 
   async deviceList(): Promise<any> {

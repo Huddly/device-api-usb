@@ -307,7 +307,6 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
   async transfer(messageBuffer: Buffer) {
     for (let i = 0; i < messageBuffer.length; i += this.MAX_PACKET_SIZE) {
       const chunk = messageBuffer.slice(i, i + this.MAX_PACKET_SIZE);
-      debugger;
       await this.sendChunk(chunk);
     }
   }

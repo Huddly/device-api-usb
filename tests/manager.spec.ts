@@ -2,6 +2,7 @@ import sinon from 'sinon';
 import chai, { expect } from 'chai';
 import sinonChai from 'sinon-chai';
 import usb from 'usb';
+import BulkUsb from 'bulk_usb';
 import DeviceDiscoveryManager from './../src/manager';
 import { EventEmitter } from 'events';
 import Logger from './../src/logger';
@@ -12,67 +13,28 @@ chai.use(require('chai-things')).use(require('chai-as-promised'));
 
 const mockedDevices = [
   {
-    getStringDescriptor: (idx, cb) => {
-      if (idx === 1)
-        cb(undefined, '4D000042');
-      else
-        cb(undefined, 'Huddly IQ');
-    },
-    deviceDescriptor: {
-      idVendor: 0x2bd9,
-      idProduct: 0x21,
-      iSerialNumber: 1,
-      iProduct: 2,
-    },
-    busNumber: 1,
-    deviceAddress: 2,
-    portNumbers: [1, 2],
-    interfaces: [],
-    open: () => { },
-    close: () => { },
-    serialNumber: '4D000042',
-    id: '46790582'
+      vid: 11225,
+      pid: 33,
+      serial: 'B40I00070',
+      location: [ 0, 2 ],
+      onDetach: sinon.stub(),
+      id: '',
   },
   {
-    getStringDescriptor: (idx, cb) => {
-      if (idx === 1)
-        cb(undefined, '4D000043');
-      else
-        cb(undefined, 'Huddly IQ');
-    },
-    deviceDescriptor: {
-      idVendor: 0x2bd9,
-      idProduct: 0x21,
-      iSerialNumber: 1,
-      iProduct: 2,
-    },
-    busNumber: 1,
-    deviceAddress: 2,
-    portNumbers: [1, 3],
-    interfaces: [],
-    open: () => { },
-    close: () => { },
-    serialNumber: '4D000043'
+    vid: 11225,
+    pid: 33,
+    serial: 'B40I09970',
+    location: [ 4, 6 ],
+    onDetach: sinon.stub(),
+    id: '',
   },
-  { // Not a Huddly IQ device
-    getStringDescriptor: (idx, cb) => {
-      if (idx === 1)
-        cb(undefined, 'ABCDSF');
-      else
-        cb(undefined, 'Non Huddly Device');
-    },
-    deviceDescriptor: {
-      idVendor: 0x2bd1,
-      idProduct: 0x22,
-      iSerialNumber: 1,
-      iProduct: 2,
-    },
-    busNumber: 3,
-    deviceAddress: 2,
-    portNumbers: [1, 3],
-    open: () => { },
-    close: () => { },
-    serialNumber: 'ABCDSF'
+  {
+    vid: 0x2bd1,
+    pid: 0x22,
+    serial: 'ABCDSF',
+    location: [ 1, 3 ],
+    onDetach: sinon.stub(),
+    id: '',
   }
 ];
 
@@ -92,9 +54,9 @@ describe('HuddlyUsbDeviceManager', () => {
   describe('#generateUsbUniqueId', () => {
     it('should generate a unique id based on device descriptor properties', () => {
       const deviceOneHash = devicemanager.generateUsbUniqueId({
-        usbBusNumber: mockedDevices[0].busNumber,
-        usbDeviceAddress: mockedDevices[0].deviceAddress,
-        usbPortNumbers: mockedDevices[0].portNumbers
+        usbBusNumber: mockedDevices[0].location[0],
+        usbDeviceAddress: mockedDevices[0].location[1],
+        usbPortNumbers: mockedDevices[0].location[0],
       });
       expect(deviceOneHash).to.equal(mockedDevices[0].id);
     });
@@ -113,49 +75,15 @@ describe('HuddlyUsbDeviceManager', () => {
     });
   });
 
-  describe('#fetchAndPopulateDeviceParams', () => {
-    it('should fetch serial number and product number from device descriptor', async () => {
-      const huddlyUsbDevice = await devicemanager.fetchAndPopulateDeviceParams(mockedDevices[0]);
-      const generatedId = devicemanager.generateUsbUniqueId({
-        usbBusNumber: mockedDevices[0].busNumber,
-        usbDeviceAddress: mockedDevices[0].deviceAddress,
-        usbPortNumbers: mockedDevices[0].portNumbers
-      });
-      expect(huddlyUsbDevice.id).to.equal(generatedId);
-      expect(huddlyUsbDevice.serialNumber).to.equal(mockedDevices[0].serialNumber);
-      expect(huddlyUsbDevice.productName).to.equal('Huddly IQ');
-      expect(huddlyUsbDevice.productId).to.equal(mockedDevices[0].deviceDescriptor.idProduct);
-      expect(huddlyUsbDevice.vendorId).to.equal(mockedDevices[0].deviceDescriptor.idVendor);
-    });
-
-    it('should reject in case getStringDescriptor throws an error', () => {
-      const mockedDev = {
-        getStringDescriptor: (idx, cb) => cb('Error', undefined),
-        deviceDescriptor: { iSerialNumber: 1 },
-        open: () => { }
-      };
-      const fetchPromise = devicemanager.fetchAndPopulateDeviceParams(mockedDev);
-      return fetchPromise.should.be.rejectedWith('Error');
-    });
-
-    it('should re-throw error when not able to open the device', () => {
-      const buggyDevice = {
-        open: () => { throw new Error('Cant open Device!'); }
-      };
-      const fetchPromise = devicemanager.fetchAndPopulateDeviceParams(buggyDevice);
-      return fetchPromise.should.be.rejectedWith('Unable to fetch device parameters from usb descriptor! Error: Cant open Device!');
-    });
-  });
 
   describe('#setDeviceUid', () => {
     it('should generate a uid for the given device and set it to ID property', () => {
       const newDevice: any = {
-        busNumber: 1,
-        deviceAddress: 2,
-        portNumbers: [1, 2]
+          pid: 33,
+          location: [0, 2]
       };
       devicemanager.setDeviceUid(newDevice);
-      expect(newDevice.id).to.equals('46790582');
+      expect(newDevice.id).to.equals('47726');
     });
   });
 
@@ -221,25 +149,25 @@ describe('HuddlyUsbDeviceManager', () => {
       let attachStub;
       beforeEach(() => {
         emitter = new EventEmitter();
-        attachStub = sinon.stub(usb, 'on').withArgs('attach');
+        attachStub = sinon.stub(BulkUsb, 'onAttach');
       });
 
       afterEach(() => {
-        usb.on.restore();
+        BulkUsb.onAttach.restore();
         devicemanager.destroy();
       });
 
       it('should emit USB_ATTACH when a huddly device is attached', () => {
         const attachPromise = new Promise((resolve) => {
           emitter.on('ATTACH', (device) => {
-            expect(device.serialNumber).to.equal(mockedDevices[0].serialNumber);
+            expect(device.serial).to.equal(mockedDevices[0].serial);
             expect(device.productName).to.equal('Huddly IQ');
             expect(devicemanager.attachedDevices.length).to.equal(1);
             resolve();
           });
         });
         devicemanager.registerForHotplugEvents(emitter);
-        attachStub.callArgWith(1, mockedDevices[0]);
+        attachStub.callArgWith(0, mockedDevices[0]);
         return attachPromise;
       });
 
@@ -247,7 +175,7 @@ describe('HuddlyUsbDeviceManager', () => {
         const attachSpy = sinon.spy();
         emitter.on('ATTACH', attachSpy);
         devicemanager.registerForHotplugEvents(emitter);
-        await attachStub.callArgWith(1, mockedDevices[2]);
+        await attachStub.callArgWith(0, mockedDevices[2]);
         expect(attachSpy.callCount).to.equal(0);
         expect(devicemanager.attachedDevices.length).to.equal(0);
       });
@@ -255,41 +183,26 @@ describe('HuddlyUsbDeviceManager', () => {
 
     describe('#onDetach', () => {
       let emitter;
-      let detachStub;
+      let attachStub;
       beforeEach(() => {
         emitter = new EventEmitter();
-        detachStub = sinon.stub(usb, 'on').withArgs('detach');
+        attachStub = sinon.stub(BulkUsb, 'onAttach');
       });
 
       afterEach(() => {
-        usb.on.restore();
+        BulkUsb.onAttach.restore();
       });
 
-      it('should emit USB_DETACH with unique id if the device was not cached', () => {
+      it('should emit USB_DETACH with serial', () => {
         const detachPromise = new Promise((resolve) => {
           emitter.on('DETACH', (deviceId) => {
-            expect(deviceId).to.equal(mockedDevices[0].id);
+            expect(deviceId).to.equal(mockedDevices[0].serial);
             resolve();
           });
         });
         devicemanager.registerForHotplugEvents(emitter);
-        detachStub.callArgWith(1, mockedDevices[0]);
-        return detachPromise;
-      });
-
-      it('should emit USB_DETACH with serial number when the device was cached', () => {
-        devicemanager.registerForHotplugEvents(emitter);
-        const cachedDevice = Object.assign({}, mockedDevices[0]);
-        cachedDevice['serialNumber'] = cachedDevice.serialNumber;
-        devicemanager.updateCache([cachedDevice], []);
-
-        const detachPromise = new Promise((resolve) => {
-          emitter.on('DETACH', (deviceId) => {
-            expect(deviceId).to.equal(cachedDevice.serialNumber);
-            resolve();
-          });
-        });
-        detachStub.callArgWith(1, cachedDevice);
+        attachStub.callArgWith(0, mockedDevices[0]);
+        mockedDevices[0].onDetach.callArgWith(0, mockedDevices[0]);
         return detachPromise;
       });
 
@@ -297,7 +210,8 @@ describe('HuddlyUsbDeviceManager', () => {
         const detachSpy = sinon.spy();
         emitter.on('DETACH', detachSpy);
         devicemanager.registerForHotplugEvents(emitter);
-        await detachStub.callArgWith(1, mockedDevices[2]);
+        await attachStub.callArgWith(0, mockedDevices[2]);
+        mockedDevices[0].onDetach.callArgWith(0, mockedDevices[2]);
         expect(detachSpy.callCount).to.equal(0);
       });
     });
@@ -398,12 +312,12 @@ describe('HuddlyUsbDeviceManager', () => {
 
     it('should return first discovered device when serial number is not specified', async () => {
       const device = await devicemanager.getDevice();
-      expect(device.serialNumber).to.equal(mockedDevices[0].serialNumber);
+      expect(device.serialNumber).to.equal(mockedDevices[0].serial);
     });
 
     it('should return the specific attachedDevice when serial number provided', async () => {
-      const device = await devicemanager.getDevice(mockedDevices[1].serialNumber);
-      expect(device.serialNumber).to.equal(mockedDevices[1].serialNumber);
+      const device = await devicemanager.getDevice(mockedDevices[1].serial);
+      expect(device.serialNumber).to.equal(mockedDevices[1].serial);
     });
   });
 });
