@@ -41,10 +41,10 @@ describe('MessagePacket Factory', () => {
 
   describe('#parseMessage string', () => {
     it('should get message', () => {
-      const messageBufferBase64 = 'BQEACAAAAAAAAA0AAAAAAGR1bW15IG1lc3NhZ2U='; // Represents the 'dummy message' as base64 string
+      const messageBufferBase64 = 'AAAAAAAAAAAAAA0AAAAAAGR1bW15LW1lc3NhZ2U='; // Represents the 'dummy message' as base64 string
       const buffer = Buffer.from(messageBufferBase64, 'base64');
       const messagObj = MessagePacket.parseMessage(buffer);
-      expect(messagObj['message']).to.equal('dummy message');
+      expect(messagObj['message']).to.equal('dummy-message');
     });
 
     it('should get a not empty payload buffer', () => {
