@@ -1,5 +1,5 @@
 import ITransport from '@huddly/sdk/lib/src/interfaces/iTransport';
-import BulkUsb from 'bulk_usb';
+import DeviceEndpoint from './bulkusbendpoint';
 import MessagePacket from './messagepacket';
 import { EventEmitter } from 'events';
 import { timingSafeEqual } from 'crypto';
@@ -47,7 +47,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
   logger: any;
   running: any;
   vscInterface: any;
-  endpoint: BulkUsb.DeviceEndpoint;
+  endpoint: DeviceEndpoint;
   timeoutMs: Number = 100;
   listenerTimeoutId: Number;
   sendQueue: Array<SendMessage> = [];

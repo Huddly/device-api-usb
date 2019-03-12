@@ -1,4 +1,4 @@
-import BulkUsb from 'bulk_usb';
+import BulkUsb from './bulkusbdevice';
 import EventEmitter from 'events';
 import IDeviceDiscovery from '@huddly/sdk/lib/src/interfaces/iDeviceDiscovery';
 import Logger from './logger';
