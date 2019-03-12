@@ -7,3 +7,6 @@ packages
 .DS_Store
 coverage
 .nyc_output
+build
+cpp/binding
+prebuilds

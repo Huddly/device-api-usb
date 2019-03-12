@@ -1,10 +1,10 @@
 import chai from 'chai';
 import sinonChai from 'sinon-chai';
-import usb from 'usb';
 import NodeUsbTransport from './../src/transport';
 import sinon from 'sinon';
 import MessagePacket from './../src/messagepacket';
 import crypto from 'crypto';
+import { executionAsyncId } from 'async_hooks';
 
 const expect = chai.expect;
 chai.should();
@@ -17,24 +17,16 @@ const dummyLogger = {
   info: () => { },
   error: () => { }
 };
+
+
 const createNewTransportInstance = () => new NodeUsbTransport({
-  open: () => { },
+  open: () => ({
+    read: () => {},
+    write: () => {},
+    close: () => {},
+  }),
   close: () => { },
-  interfaces: [
-    {
-      claim: () => { },
-      release: (endpoints, cb) => {
-        cb(undefined);
-      },
-      descriptor: {
-        bInterfaceClass: 255,
-      },
-      endpoints: [
-        sinon.createStubInstance(usb.InEndpoint),
-        sinon.createStubInstance(usb.OutEndpoint)
-      ]
-    }
-  ],
+  onDetach: () => {},
   serial: 'Serial123',
 }, dummyLogger);
 
@@ -45,132 +37,147 @@ describe('UsbTransport', () => {
   });
 
   describe('#init', async () => {
-    let closeStub;
     beforeEach(() => {
-      closeStub = sinon.stub(transport, 'closeDevice');
+      sinon.stub(transport.device, 'close');
+      sinon.stub(transport.device, 'open');
     });
-    afterEach(() => { closeStub.restore(); });
 
-    it('set in and out enpoints', async () => {
+    afterEach(() => {
+      transport.device.open.restore();
+      transport.device.close.restore();
+    });
+
+    it('should open devices', async () => {
       await transport.init();
-      expect(transport.inEndpoint).to.be.an.instanceof(usb.InEndpoint);
-      expect(transport.outEndpoint).to.be.an.instanceof(usb.OutEndpoint);
-      expect(transport.inEndpoint.address).not.be.null;
-      expect(transport.outEndpoint.address).not.be.null;
+      expect(transport.device.open).to.have.been.calledOnce;
     });
 
-    it('should reject when no VSC interface is found on the device', async () => {
-      const noVscInterfaceDevice = {
-        open: () => { },
-        close: () => { },
-        interfaces: [{ descriptor: { bInterfaceClass: 25555555 } }]
+    it('should set endpoint when it is opened', async () => {
+      const dummyEndpoint = {
+        read: () => {},
+        write: () => {},
       };
-      try {
-        transport = new NodeUsbTransport(noVscInterfaceDevice, dummyLogger);
-        await transport.init();
-        expect(true).to.equals(false);
-      } catch (e) {
-        expect(e).to.equal('No VSC Interface present on the usb device!');
-      }
+      transport.device.open.resolves(dummyEndpoint);
+      await transport.init();
+      expect(transport.endpoint).to.equal(dummyEndpoint);
     });
 
-    it('should reject when claiminig the interface fails', async () => {
-      const buggyDevice = {
-        open: () => { },
-        close: () => { },
-        interfaces: [{
-          descriptor: { bInterfaceClass: 255 },
-          claim: () => { throw new Error('Cannot claim this interface!'); },
-        }]
-      };
+    it('should reject if it can not open device', async () => {
+      transport.device.open.rejects('This failed');
       try {
-        transport = new NodeUsbTransport(buggyDevice, dummyLogger);
         await transport.init();
       } catch (e) {
-        expect(e).to.equal('Error Occurred claiming interface! Error: Cannot claim this interface!');
+        expect(e.name).to.equal('This failed');
       }
     });
   });
 
   describe('#initEventLoop', () => {
     let startListenStub;
+    let writeStub;
+    let readStub;
     beforeEach(async () => {
       await transport.init();
       startListenStub = sinon.stub(transport, 'startListen');
+      readStub = sinon.stub(transport.endpoint, 'read').returns(
+        new Promise(resolves => {
+          setTimeout(() => resolves(Buffer.alloc(0)), 100);
+        })
+      );
+      writeStub = sinon.stub(transport.endpoint, 'write').returns(
+        new Promise(resolves => {
+          setTimeout(() => resolves(Buffer.alloc(0)), 100);
+        })
+      );
     });
-    afterEach(() => {
+
+    afterEach(async () => {
+      await transport.stopEventLoop();
+      readStub.restore();
+      writeStub.restore();
       startListenStub.restore();
     });
 
-    it('should start the polling on read endpoint and call #startListen', () => {
-      transport.initEventLoop();
-      expect(transport.inEndpoint.startPoll.callCount).to.equals(1);
-      expect(transport.inEndpoint.startPoll.firstCall.args[0]).to.equals(1);
-      expect(transport.inEndpoint.startPoll.firstCall.args[1]).to.equals(MAX_PACKET_SIZE);
-      expect(startListenStub.callCount).to.equals(1);
-      expect(transport.running).to.equals(true);
-    });
-  });
-
-  describe('#startListen', () => {
-    let closeStub;
-    beforeEach(() => {
-      closeStub = sinon.stub(transport, 'close');
-    });
-    afterEach(() => closeStub.restore());
-
-    it('should process incoming data and emit result', async () => {
+    it('should start processing read and emit incoming', async () => {
       const encodedMsg = MessagePacket.createMessage('hello-msg', Buffer.from('Greetings!'));
-      await transport.init();
-      transport.inEndpoint.on.withArgs('data')
-        .onCall(0).callsFake((msg, cb) => cb(encodedMsg));
-      const emitSpy = sinon.spy(transport, 'emit');
-      transport.startListen();
-      expect(emitSpy.callCount).to.equals(1);
-      expect(emitSpy.firstCall.args[0]).to.equals('hello-msg');
-      expect(emitSpy.firstCall.args[1]).to.deep.equals(MessagePacket.parseMessage(encodedMsg));
+      readStub.returns(new Promise(resolve => {
+        setTimeout(() => resolve(encodedMsg), 10);
+      }));
+      const messagePromise = new Promise(resolves => {
+        transport.on('hello-msg', resolves);
+      });
+
+      transport.initEventLoop();
+      const message: any = await messagePromise;
+      transport.stopEventLoop();
+
+      expect(message.message).to.equal('hello-msg');
+      expect(message.payload).to.deep.equal(Buffer.from('Greetings!'));
     });
 
-    it.skip('should process buffer chunks when not received as a whole', async () => {
+    it('should processing write message and resolve them when sent', async () => {
+      readStub.returns(new Promise((resolve, reject) => {
+        setTimeout(() => reject(new Error('LIBUSB_ERROR_TIMEOUT')), 10);
+      }));
+      transport.initEventLoop();
+      await transport.write('dummy/cmd');
+      transport.stopEventLoop();
+
+      expect(writeStub.firstCall.args[0].toString('utf8')).to.contain('dummy/cmd');
+    });
+
+    it('should just continue if it gets timeout on read', async () => {
+      readStub.returns(new Promise((resolve, reject) => {
+        setTimeout(() => reject(new Error('LIBUSB_ERROR_TIMEOUT')), 100);
+      }));
+      try {
+        transport.initEventLoop();
+      } catch (e) {
+        expect('Not to fail').to.equal(e);
+      }
+    });
+
+    it('should process buffer chunks when not received as a whole', async () => {
       const message = 'hello-msg';
       const payload = crypto.randomBytes(1024);
       const encodedMsg = MessagePacket.createMessage(message, payload);
       const firstChunk = encodedMsg.slice(0, encodedMsg.length / 2);
       const secondChunk = encodedMsg.slice(encodedMsg.length / 2);
-      await transport.init();
-      transport.inEndpoint.on.withArgs('data').callsFake((msg, cb) => cb(firstChunk));
-      setTimeout(() => {
-        transport.inEndpoint.on.withArgs('data').callsFake((msg, cb) => {
-          console.log('---- Second call');
-          cb(secondChunk);
-        });
-      }, 100);
-      const emitSpy = sinon.spy(transport, 'emit');
-      transport.startListen();
-      expect(emitSpy.callCount).to.equals(1);
-      expect(emitSpy.firstCall.args[0]).to.equals('hello-msg');
-      expect(emitSpy.firstCall.args[1]).to.deep.equals(MessagePacket.parseMessage(encodedMsg));
+      readStub.onFirstCall().resolves(firstChunk);
+      readStub.onSecondCall().resolves(secondChunk);
+
+      const emitMsgPromise = new Promise(resolve => {
+        transport.on('hello-msg', resolve);
+      });
+      transport.initEventLoop();
+
+      const helloMsg = await emitMsgPromise;
+
+      expect(helloMsg).to.deep.equals(MessagePacket.parseMessage(encodedMsg));
     });
 
-    it('should call #close on error message', async () => {
-      await transport.init();
-      transport.inEndpoint.on.withArgs('error').onCall(0).callsFake((msg, cb) => cb('Error -1'));
-      transport.startListen();
-      expect(closeStub.callCount).to.equals(1);
+    it('should not stop event loop on error', async () => {
+      readStub.returns(new Promise((resolve, reject) => {
+        reject(new Error('unknown error'));
+      }));
+      transport.initEventLoop();
+
+      // Let read/write async loop run
+      await new Promise(resolve => setImmediate(resolve));
+
+      expect(readStub.callCount).to.be.equal(1);
+      expect(transport.running).to.equal(true);
     });
 
     describe('on hlink reset sequence', () => {
-      it('should throw an error and close connection', async () => {
-        let resolveReset;
-        const resetPromise = new Promise(resolve => resolveReset = resolve);
-        await transport.init();
-        transport.inEndpoint.on.withArgs('data').callsFake((msg, cb) => cb(Buffer.from('HLink v0')));
-        transport.inEndpoint.stopPoll.resolves({});
-        transport.on('TRANSPORT_RESET', resolveReset);
-        await transport.startListen();
-
-        await resetPromise;
-        expect(closeStub.callCount).to.equals(1);
+      it('should emit TRANSPORT_RESET if it got a empty header', async () => {
+        readStub.returns(new Promise(resolve => {
+          setTimeout(() => resolve(Buffer.alloc(0)), 10);
+        }));
+        const resetPromise = new Promise(resolve => transport.on('TRANSPORT_RESET', resolve));
+        transport.initEventLoop();
+        const message = await resetPromise;
+        expect(message).to.be.undefined;
       });
     });
   });
@@ -227,7 +234,7 @@ describe('UsbTransport', () => {
         await p;
       } catch (e) {
         expect(transport.removeAllListeners).to.have.been.calledWith('timeout_msg');
-        expect(e).to.equals('Request has timed out!');
+        expect(e).to.equals('Request has timed out! timeout_msg 10');
       }
     });
 
@@ -248,40 +255,56 @@ describe('UsbTransport', () => {
   });
 
   describe('#read', () => {
-    it('should throw error with "Depricated" error message', async () => {
+    it('should throw error with "Deprecated" error message', async () => {
       try {
         await transport.read();
         expect(true).to.equals(false);
       } catch (e) {
-        expect(e.message).to.equals('Depricated Method!');
+        expect(e.message).to.equals('Deprecated Method!');
       }
     });
   });
 
   describe('#write', () => {
     let transferStub;
+    let readStub;
     beforeEach(async () => {
-      transferStub = sinon.stub(transport, 'transfer').returns(Promise.resolve());
       await transport.init();
+      transferStub = sinon.stub(transport.endpoint, 'write').returns(new Promise(resolve => {
+        setTimeout(resolve, 1000);
+      }));
+      readStub = sinon.stub(transport.endpoint, 'read').returns(new Promise((resolve, reject) => {
+        setTimeout(() => reject(new Error('LIBUSB_ERROR_TIMEOUT')), 1000);
+      }));
     });
 
-    afterEach(() => { transferStub.restore(); });
+    afterEach(async () =>  {
+      transferStub.restore();
+      readStub.restore();
+      await transport.stopEventLoop();
+    });
 
     it('should package the message command and its payload and call transfer', async () => {
-      await transport.write('echo-test', Buffer.alloc(0));
+      const writPromise = transport.write('echo-test', Buffer.alloc(0));
+      transport.initEventLoop();
+      await writPromise;
       expect(transferStub).to.have.calledWith(MessagePacket.createMessage('echo-test', Buffer.alloc(0)));
     });
 
     describe('#subscribe', () => {
       it('should send a hlink subscribe message', async () => {
-        await transport.subscribe('test-subscribe');
+        const subscribePromise = transport.subscribe('test-subscribe');
+        transport.initEventLoop();
+        await subscribePromise;
         expect(transferStub).to.have.calledWith(MessagePacket.createMessage('hlink-mb-subscribe', 'test-subscribe'));
       });
     });
 
     describe('#unsubscribe', () => {
       it('should send a hlink unsubscribe message', async () => {
-        await transport.unsubscribe('test-unsubscribe');
+        const unsubscribePromise = transport.unsubscribe('test-unsubscribe');
+        transport.initEventLoop();
+        await unsubscribePromise;
         expect(transferStub).to.have.calledWith(MessagePacket.createMessage('hlink-mb-unsubscribe', 'test-unsubscribe'));
       });
     });
@@ -295,14 +318,29 @@ describe('UsbTransport', () => {
   });
 
   describe('#close', () => {
+    let transferStub;
+    let readStub;
+    beforeEach(async () => {
+      await transport.init();
+      transferStub = sinon.stub(transport.endpoint, 'write').returns(new Promise(resolve => {
+        setTimeout(resolve, 10);
+      }));
+      readStub = sinon.stub(transport.endpoint, 'read').returns(new Promise((resolve, reject) => {
+        setTimeout(() => reject(new Error('LIBUSB_ERROR_TIMEOUT')), 10);
+      }));
+    });
+
+    afterEach(() => {
+      transferStub.restore();
+      readStub.restore();
+    });
+
     it('should release the vsc interface', async () => {
       await transport.init();
-      const releaseSpy = sinon.spy(transport.vscInterface, 'release');
-      const closeSpy = sinon.spy(transport.device, 'close');
+      const closeSpy = sinon.spy(transport.endpoint, 'close');
+
       await transport.close();
 
-      expect(releaseSpy.callCount).to.equal(1);
-      expect(releaseSpy.firstCall.args[0]).to.deep.equal([transport.inEndpoint, transport.outEndpoint]);
       expect(closeSpy.callCount).to.equal(1);
     });
 
@@ -323,49 +361,53 @@ describe('UsbTransport', () => {
     it('should stop poll on read endpoint', async () => {
       transport.running = true;
       await transport.init();
-      transport.inEndpoint.stopPoll.callsFake((cb) => cb());
       await transport.close();
-      expect(transport.inEndpoint.stopPoll.callCount).to.equals(1);
+      expect(transport.running).to.equals(false);
     });
   });
 
   describe('#receive', () => {
-    it('should throw error with "Depricated" error message', async () => {
+    it('should throw error with "Deprecated" error message', async () => {
       try {
         await transport.receive();
         expect(true).to.equals(false);
       } catch (e) {
-        expect(e.message).to.equals('Depricated Method!');
+        expect(e.message).to.equals('Deprecated Method!');
       }
     });
   });
 
   describe('#transfer', () => {
-    let outEndpointStub;
+    let writeStub;
     beforeEach(async () => {
       await transport.init();
-      outEndpointStub = transport.outEndpoint.transfer;
+      writeStub = sinon.stub(transport.endpoint, 'write')
+        .returns(new Promise(resolve => {
+          setTimeout(resolve, 10);
+        })
+      );
+    });
+
+    afterEach(() => {
+      writeStub.restore();
     });
 
     it('should transfer buffer over out endpoint', async () => {
       const messageBuffer = Buffer.from('test');
-      outEndpointStub.callsFake((message, cb) => {
-        cb();
-      });
       await transport.transfer(messageBuffer);
-      expect(outEndpointStub).to.have.been.calledWith(messageBuffer);
+      console.log(writeStub.callCount);
+      expect(writeStub).to.have.been.calledWith(messageBuffer);
     });
 
     it('should fail transfer buffer when out endpoint transfer returns error', async () => {
       const messageBuffer = Buffer.from('test');
-      outEndpointStub.callsFake((message, cb) => {
-        cb('error');
-      });
+      const failedError = new Error('Failed');
+      writeStub.rejects(failedError);
       try {
         await transport.transfer(messageBuffer);
         expect(true).to.be.equal(false);
       } catch (e) {
-        expect(e).to.equal('Transfer failed! error');
+        expect(e).to.equal(failedError);
       }
     });
 
@@ -375,10 +417,6 @@ describe('UsbTransport', () => {
       const payload = crypto.randomBytes(payloadLen);
       const msg = MessagePacket.createMessage(command, payload);
 
-      outEndpointStub.callsFake((message, cb) => {
-        cb();
-      });
-
       const sendChunkSpy = sinon.spy(transport, 'sendChunk');
       await transport.transfer(msg);
       expect(sendChunkSpy.callCount).to.be.equal(2);
@@ -387,79 +425,90 @@ describe('UsbTransport', () => {
   });
 
   describe('#readChunk', () => {
-    it('should call transfer on out endpoint', async () => {
+    let readStub;
+    beforeEach(async () => {
       await transport.init();
-      transport.inEndpoint.transfer.callsFake((packetsize, cb) => {
-        cb();
-      });
+      readStub = sinon.stub(transport.endpoint, 'read');
+    });
+
+    afterEach(() => {
+      readStub.restore();
+    });
+
+    it('should call transfer on out endpoint', async () => {
+      readStub.resolves(MessagePacket.createMessage('test', 'test'));
       await transport.readChunk(MAX_PACKET_SIZE);
-      expect(transport.inEndpoint.transfer).to.been.called;
-      expect(transport.inEndpoint.transfer.firstCall.args[0]).to.be.equal(MAX_PACKET_SIZE);
+      expect(readStub).to.been.called;
+      expect(readStub.firstCall.args[0]).to.be.equal(MAX_PACKET_SIZE);
     });
   });
 
   describe('#sendChunk', () => {
-    it('should call transfer on in endpoint', async () => {
+    let writeStub;
+    beforeEach(async () => {
       await transport.init();
-      transport.outEndpoint.transfer.callsFake((message, cb) => {
-        cb();
-      });
-      const bufferToSend = Buffer.from('send-me');
-      await transport.sendChunk(bufferToSend);
-      expect(transport.outEndpoint.transfer).to.been.called;
-      expect(transport.outEndpoint.transfer.firstCall.args[0]).to.be.equal(bufferToSend);
+      writeStub = sinon.stub(transport.endpoint, 'write')
+        .returns(new Promise(resolve => {
+          setTimeout(resolve, 10);
+        })
+      );
     });
 
-    it('should clearHalrt on endpoint when receiving a LIBUSB_ERROR_PIPE', async () => {
+    afterEach(() => {
+      writeStub.restore();
+    });
+
+    it('should call transfer on in endpoint', async () => {
       await transport.init();
-      transport.outEndpoint.transfer.callsFake((chunk, cb) => cb({ error: 'LIBUSB_ERROR_PIPE', errno: usb.LIBUSB_ERROR_PIPE }));
-      transport.outEndpoint.clearHalt.callsFake((cb) => cb());
-      try {
-        await transport.sendChunk(Buffer.from('send-me'));
-        expect(true).to.equals(false);
-      } catch (e) {
-        expect(e).to.equals('Clear halt failed on out endpoint!');
-        expect(transport.outEndpoint.clearHalt.callCount).to.equals(1);
-      }
+      writeStub.resolves();
+      const bufferToSend = Buffer.from('send-me');
+      await transport.sendChunk(bufferToSend);
+      expect(writeStub).to.been.called;
+      expect(writeStub.firstCall.args[0]).to.be.equal(bufferToSend);
     });
   });
 
   describe('#hlink-handshake', () => {
+
+    let writeStub;
+    let readStub;
     beforeEach(async () => {
       await transport.init();
+      writeStub = sinon.stub(transport.endpoint, 'write')
+        .returns(new Promise(resolve => {
+          setTimeout(resolve, 10);
+        })
+      );
+      readStub = sinon.stub(transport.endpoint, 'read');
+    });
+
+    afterEach(() => {
+      writeStub.restore();
+      readStub.restore();
     });
 
     it('should correctly perform hlink salutation process', async () => {
-      transport.outEndpoint.transfer.callsFake((message, cb) => {
-        cb();
-      });
-      transport.inEndpoint.transfer.callsFake((pkgSize, cb) => {
-        cb(undefined, Buffer.from('HLink v0'));
-      });
+      readStub.resolves(Buffer.from('HLink v0'));
       await transport.performHlinkHandshake();
 
       // Reset Sequence transfer
-      expect(transport.outEndpoint.transfer.callCount).to.be.equal(2);
-      expect(transport.outEndpoint.transfer.firstCall.args[0].compare(Buffer.alloc(0))).to.be.equal(0);
-      expect(transport.outEndpoint.transfer.secondCall.args[0].compare(Buffer.alloc(1, 0x00))).to.be.equal(0);
+      expect(writeStub.callCount).to.be.equal(3);
+      expect(writeStub.firstCall.args[0].compare(Buffer.from([]))).to.be.equal(0);
+      expect(writeStub.secondCall.args[0].compare(Buffer.from([]))).to.be.equal(0);
+      expect(writeStub.thirdCall.args[0].compare(Buffer.from([0]))).to.be.equal(0);
 
       // Read message
-      expect(transport.inEndpoint.transfer.callCount).to.be.equal(1);
-      expect(transport.inEndpoint.transfer.firstCall.args[0]).to.be.equal(1024);
+      expect(readStub.callCount).to.be.equal(1);
+      expect(readStub.firstCall.args[0]).to.be.equal(1024);
     });
 
     it('should fail when salutation message is not "Hlink v0"', async () => {
-      transport.outEndpoint.transfer.callsFake((message, cb) => {
-        cb();
-      });
-      transport.inEndpoint.transfer.callsFake((pkgSize, cb) => {
-        cb(undefined, Buffer.from('Hlink v0000'));
-      });
+      readStub.resolves(Buffer.from('Hlink v0000'));
       try {
         await transport.performHlinkHandshake();
         expect(true).to.equals(false);
       } catch (error) {
-        expect(error).to.equal('HLink handshake mechanism failed! Wrong version!');
+        expect(error).to.contain('Hlink handshake has failed!');
       }
     });
   });

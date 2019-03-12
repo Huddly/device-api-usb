@@ -19,7 +19,6 @@ export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
   }
 
   async initialize() {
-    await this.deviceDiscoveryManager.discoverCameras();
   }
 
   registerForHotplugEvents(eventEmitter: EventEmitter): void {
