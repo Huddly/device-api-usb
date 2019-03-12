@@ -1,13 +1,34 @@
 language: node_js
 
-node_js:
-  - "8.9.4"
-  - "11.5.0"
-  - "10.12.0"
 
 script:
   - npm run build
-os:
-  - linux
-  - osx
-  - windows
+
+addons:
+  apt:
+    packages:
+      - libudev-dev
+
+matrix:
+  include:
+    - os: linux
+      dist: xenial
+      node_js: "11.5.0"
+      before_install:
+        - sudo add-apt-repository --yes ppa:jonathonf/gcc-8.1
+        - sudo apt-get update
+        - sudo apt-get install -y gcc-8 g++-8
+        - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 60
+    - os: osx
+      osx_image: xcode10.1
+      node_js: "11.5.0"
+    - os: windows
+      node_js: "11.5.0"
+
+deploy:
+  skip_cleanup: true
+  provider: script
+  script: ./tools/commit-artifacts.sh
+  on:
+    all_branches: true
+    condition: $TRAVIS_BRANCH =~ ^build.+$
