@@ -37,7 +37,7 @@ export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
       this.logger.info(':::::::::::: Transport Protocol is HLINK ::::::::::::');
       return transport;
     } catch (e) {
-      this.logger.warn(`HLink is not supported for device: ${ device.serialNumber }`);
+      this.logger.warn(`HLink is not supported for device: ${device.serialNumber}`);
       return undefined;
     }
   }

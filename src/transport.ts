@@ -2,7 +2,7 @@ import ITransport from '@huddly/sdk/lib/src/interfaces/iTransport';
 import DeviceEndpoint from './bulkusbendpoint';
 import MessagePacket from './messagepacket';
 import { EventEmitter } from 'events';
-import { IDevice, IOpenDevice } from './types';
+import { timingSafeEqual } from 'crypto';
 
 const MAX_USB_PACKET = 16 * 1024;
 
@@ -29,7 +29,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     PENDING_CHUNK: 'pending_chunk'
   });
 
-  _device: IDevice;
+  _device: any;
 
   /**
    * The evetLoopSpeed shall not be used in this class since node-usb read
@@ -47,7 +47,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
   logger: any;
   running: any;
   vscInterface: any;
-  endpoint: undefined | IOpenDevice;
+  endpoint: DeviceEndpoint;
   timeoutMs: Number = 100;
   listenerTimeoutId: Number;
   sendQueue: Array<SendMessage> = [];
@@ -65,7 +65,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
    * @type {*}
    * @memberof NodeUsbTransport
    */
-  get device(): IDevice {
+  get device(): any {
     return this._device;
   }
 
@@ -74,7 +74,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
    *
    * @memberof NodeUsbTransport
    */
-  set device(device: IDevice) {
+  set device(device: any) {
     this._device = device;
   }
 
@@ -93,12 +93,16 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
   }
 
   async init(): Promise<any> {
-    if (!this.endpoint) {
+    if (!this.device.endpoint) {
       try {
-        this.endpoint = await this.device.open();
+        const endpoint = await this.device.open();
+        this.endpoint = endpoint;
+        this.device.endpoint = endpoint;
       } catch (e) {
         throw e;
       }
+    } else {
+      this.endpoint = this.device.endpoint;
     }
   }
 
@@ -116,6 +120,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
       isAttached = false;
     });
     this.running = true;
+    this.device.isAttached = true;
     while (isAttached && this.running) {
       try {
         await this.sendMessage();

@@ -37,10 +37,12 @@ describe('UsbTransport', () => {
 
   describe('#init', async () => {
     beforeEach(() => {
+      sinon.stub(transport.device, 'close');
       sinon.stub(transport.device, 'open');
     });
     afterEach(() => {
-      (transport.device.open as any).restore();
+      transport.device.open.restore();
+      transport.device.close.restore();
     });
 
     it('should open devices', async () => {
@@ -53,13 +55,13 @@ describe('UsbTransport', () => {
         read: () => {},
         write: () => {},
       };
-      (transport.device.open as any).resolves(dummyEndpoint);
+      transport.device.open.resolves(dummyEndpoint);
       await transport.init();
       expect(transport.endpoint).to.equal(dummyEndpoint);
     });
 
     it('should reject if it can not open device', async () => {
-      (transport.device.open as any).rejects('This failed');
+      transport.device.open.rejects('This failed');
       try {
         await transport.init();
       } catch (e) {
