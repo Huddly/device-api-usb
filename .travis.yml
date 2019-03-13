@@ -24,11 +24,3 @@ matrix:
       node_js: "11.5.0"
     - os: windows
       node_js: "11.5.0"
-
-deploy:
-  skip_cleanup: true
-  provider: script
-  script: ./tools/commit-artifacts.sh
-  on:
-    all_branches: true
-    condition: $TRAVIS_BRANCH =~ ^build.+$
