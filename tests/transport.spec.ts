@@ -72,15 +72,17 @@ describe('UsbTransport', () => {
 
   describe('#initEventLoop', () => {
     let startListenStub;
+    let writeStub;
+    let readStub;
     beforeEach(async () => {
       await transport.init();
       startListenStub = sinon.stub(transport, 'startListen');
-      sinon.stub(transport.endpoint, 'read').returns(
+      readStub = sinon.stub(transport.endpoint, 'read').returns(
         new Promise(resolves => {
           setTimeout(() => resolves(Buffer.alloc(0)), 100);
         })
       );
-      sinon.stub(transport.endpoint, 'write').returns(
+      writeStub = sinon.stub(transport.endpoint, 'write').returns(
         new Promise(resolves => {
           setTimeout(() => resolves(Buffer.alloc(0)), 100);
         })
@@ -88,15 +90,15 @@ describe('UsbTransport', () => {
     });
 
     afterEach(() => {
-      transport.endpoint.read.restore();
-      transport.endpoint.write.restore();
+      readStub.restore();
+      writeStub.restore();
       startListenStub.restore();
       transport.stopEventLoop();
     });
 
     it('should start processing read and emit incoming', async () => {
       const encodedMsg = MessagePacket.createMessage('hello-msg', Buffer.from('Greetings!'));
-      transport.endpoint.read.resolves(encodedMsg);
+      readStub.resolves(encodedMsg);
       const messagePromise = new Promise(resolves => {
         transport.on('hello-msg', resolves);
       });
@@ -110,16 +112,16 @@ describe('UsbTransport', () => {
     });
 
     it('should processing write message and resolve them when sent', async () => {
-      transport.endpoint.read.rejects(new Error('LIBUSB_ERROR_TIMEOUT'));
+      readStub.rejects(new Error('LIBUSB_ERROR_TIMEOUT'));
       transport.initEventLoop();
       await transport.write('dummy/cmd');
       transport.stopEventLoop();
 
-      expect(transport.endpoint.write.firstCall.args[0].toString('utf8')).to.contain('dummy/cmd');
+      expect(writeStub.firstCall.args[0].toString('utf8')).to.contain('dummy/cmd');
     });
 
     it('should just continue if it gets timeout on read', () => {
-      transport.endpoint.read.rejects(new Error('LIBUSB_ERROR_TIMEOUT'));
+      readStub.rejects(new Error('LIBUSB_ERROR_TIMEOUT'));
       try {
         transport.initEventLoop();
       } catch (e) {
@@ -128,7 +130,7 @@ describe('UsbTransport', () => {
     });
 
     it('should emit TRANSPORT_RESET if it got a empty header', () => {
-      transport.endpoint.read.resolves(Buffer.alloc(0));
+      readStub.resolves(Buffer.alloc(0));
       const resetPromise = new Promise(resolve => transport.on('TRANSPORT_RESET', resolve));
       transport.initEventLoop();
       return resetPromise;
@@ -140,8 +142,8 @@ describe('UsbTransport', () => {
       const encodedMsg = MessagePacket.createMessage(message, payload);
       const firstChunk = encodedMsg.slice(0, encodedMsg.length / 2);
       const secondChunk = encodedMsg.slice(encodedMsg.length / 2);
-      transport.endpoint.read.onFirstCall().resolves(firstChunk);
-      transport.endpoint.read.onSecondCall().resolves(secondChunk);
+      readStub.onFirstCall().resolves(firstChunk);
+      readStub.onSecondCall().resolves(secondChunk);
 
       const emitSpy = sinon.spy();
       transport.on('hello-msg', emitSpy);

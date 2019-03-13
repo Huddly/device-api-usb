@@ -35,7 +35,7 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
   }
 
   private getDeviceObject(device: any) {
-    //Todo: do something that makes sense here
+    // Todo: do something that makes sense here
 
     const uid = this.generateUsbUniqueId({
       usbBusNumber: device.location[0],

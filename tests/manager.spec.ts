@@ -2,7 +2,7 @@ import sinon from 'sinon';
 import chai, { expect } from 'chai';
 import sinonChai from 'sinon-chai';
 import usb from 'usb';
-import BulkUsb from 'bulk_usb';
+import BulkUsb from './../src/bulkusbdevice';
 import DeviceDiscoveryManager from './../src/manager';
 import { EventEmitter } from 'events';
 import Logger from './../src/logger';
@@ -153,7 +153,7 @@ describe('HuddlyUsbDeviceManager', () => {
       });
 
       afterEach(() => {
-        BulkUsb.onAttach.restore();
+        attachStub.restore();
         devicemanager.destroy();
       });
 
@@ -190,7 +190,7 @@ describe('HuddlyUsbDeviceManager', () => {
       });
 
       afterEach(() => {
-        BulkUsb.onAttach.restore();
+        attachStub.restore();
       });
 
       it('should emit USB_DETACH with serial', () => {
