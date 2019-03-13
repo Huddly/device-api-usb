@@ -328,7 +328,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     cmds.push(this.sendChunk(Buffer.from([])));
     cmds.push(this.sendChunk(Buffer.from([0])));
     cmds.push(this.readChunk(1024));
-    const [, , res] = await Promise.all(cmds);
+    const [, , , res] = await Promise.all(cmds);
     const decodedMsg = Buffer.from(res).toString('utf8');
 
     if (decodedMsg !== 'HLink v0') {
