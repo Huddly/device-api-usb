@@ -2,12 +2,14 @@ import path from 'path';
 import sleep from 'await-sleep';
 import errstr from './errstr';
 import BulkUsbEndpoint from './bulkusbendpoint';
+import { IDevice } from './types';
 const binding = require('node-gyp-build')(path.join(__dirname, '..'));
 
-export class BulkUsbDevice {
+export class BulkUsbDevice implements IDevice {
   private _cpp: any;
   vid: number;
-  pid: number;
+  productId: number;
+  productName: string;
   serial: string;
   location: ReadonlyArray<number>;
   private _cookie: number;
@@ -19,7 +21,8 @@ export class BulkUsbDevice {
   constructor(cpp: any, information: any) {
     this._cpp = cpp;
     this.vid = information.vid;
-    this.pid = information.pid;
+    this.productId = information.pid;
+    this.productName = 'Huddly IQ'; // TODO
     this.serial = information.serial;
     this.location = Object.freeze(information.location);
     this._cookie = information.cookie;
@@ -27,7 +30,7 @@ export class BulkUsbDevice {
     this._openEndpoint = undefined;
   }
 
-  onDetach(cb: (dev: BulkUsbDevice) => void) {
+  onDetach(cb: (dev: this) => void) {
     if (this._openEndpoint && !this._openEndpoint.isAttached) {
       setImmediate(cb);
     } else {

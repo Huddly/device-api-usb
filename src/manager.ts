@@ -2,31 +2,16 @@ import BulkUsb from './bulkusbdevice';
 import EventEmitter from 'events';
 import IDeviceDiscovery from '@huddly/sdk/lib/src/interfaces/iDeviceDiscovery';
 import Logger from './logger';
+import { IDevice, ILogger } from './types';
 
 export default class DeviceDiscoveryManager implements IDeviceDiscovery {
   readonly HUDDLY_VID: number = 0x2bd9;
-  private attachedDevices: Array<any> = [];
+  private attachedDevices: Array<IDevice> = [];
   eventEmitter: EventEmitter;
-  logger: any;
-  pollInterval: any;
+  logger: ILogger;
 
-  constructor(logger: any) {
+  constructor(logger: ILogger) {
     this.logger = logger || new Logger(true);
-  }
-
-  private generateUsbUniqueId(props: { usbBusNumber: number, usbDeviceAddress: number, usbPortNumbers: Array<Number> }): string {
-    const stringCombo = String(props.usbBusNumber).concat(String(props.usbDeviceAddress).concat(props.usbPortNumbers.toString()));
-    let hash = 0;
-    for (let i = 0; i < stringCombo.length; i++) {
-      const char = stringCombo.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
-    }
-    return hash.toString();
-  }
-
-  private getCachedDevice(device: any): any {
-    return this.attachedDevices.find((dev) => dev.id === device.id);
   }
 
   registerForHotplugEvents(eventEmitter: EventEmitter): void {
@@ -34,69 +19,29 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
     this.discoverCameras();
   }
 
-  private getDeviceObject(device: any) {
-    // Todo: do something that makes sense here
-
-    const uid = this.generateUsbUniqueId({
-      usbBusNumber: device.location[0],
-      usbDeviceAddress: device.location[1],
-      usbPortNumbers: device.location[0],
-    });
-
-    let name;
-    switch (device.pid) {
-      case 0x11:
-        name = 'Huddly GO';
-        break;
-      case 0x21:
-        name = 'Huddly IQ';
-        break;
-      default:
-        throw new Error('Unknown device');
-    }
-
-    return {
-      ...device,
-      id: uid,
-      productId: device.pid,
-      productName: name,
-    };
-  }
-
-  private isDeviceCached(device: any): boolean {
-    return this.attachedDevices.some((dev) => dev.id === device.id || dev.serialNumber === device.serialNumber);
-  }
-
-  private updateCache(newDevices: Array<any>, removedDevice: Array<any>): void {
+  private updateCache(newDevices: Array<IDevice>, removedDevice: Array<IDevice>): void {
     newDevices.forEach(newDevice => this.attachedDevices.push(newDevice));
     removedDevice.forEach(removedDevice => {
       this.attachedDevices = this.attachedDevices.filter(
-        device => device.id !== removedDevice.id
+        device => device.equals(removedDevice)
       );
     });
-  }
-
-  destroy(): void {
-    if (this.pollInterval) {
-      clearInterval(this.pollInterval);
-    }
   }
 
   discoverCameras(): void {
     BulkUsb.onAttach(this.deviceAttached.bind(this));
   }
 
-  private deviceAttached(attachedDevice): void {
+  private deviceAttached(attachedDevice: IDevice): void {
     if (attachedDevice.vid !== this.HUDDLY_VID) {
       return;
     }
-    const newDevice = this.getDeviceObject(attachedDevice);
-    newDevice.onDetach(this.deviceDetached.bind(this));
-    this.updateCache([newDevice], []);
-    this.eventEmitter.emit('ATTACH', newDevice);
+    attachedDevice.onDetach(this.deviceDetached.bind(this));
+    this.updateCache([attachedDevice], []);
+    this.eventEmitter.emit('ATTACH', attachedDevice);
   }
 
-  private deviceDetached(removedDevice): void {
+  private deviceDetached(removedDevice: IDevice): void {
     if (removedDevice.vid !== this.HUDDLY_VID) {
       return;
     }
@@ -104,16 +49,16 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
     this.eventEmitter.emit('DETACH', removedDevice.serial);
   }
 
-  async deviceList(): Promise<any> {
+  async deviceList(): Promise<{devices: IDevice[], newDevices: IDevice[], removedDevices: IDevice[]}> {
     return { devices: this.attachedDevices, newDevices: [], removedDevices: [] };
   }
 
-  async getDevice(serialNumber: any): Promise<any> {
+  async getDevice(serialNumber: any): Promise<IDevice> {
     const { devices } = await this.deviceList();
 
-    let myDevice = undefined;
+    let myDevice: IDevice;
     if (serialNumber) {
-      myDevice = devices.find(d => d.serialNumber.indexOf(serialNumber) >= 0);
+      myDevice = devices.find(d => d.serial.indexOf(serialNumber) >= 0);
     } else if (devices.length > 0) {
       myDevice = devices[0];
     }

@@ -1,4 +1,6 @@
-export default class Logger {
+import { ILogger } from './types';
+
+export default class Logger implements ILogger {
   _verbose: boolean;
 
   constructor(verbose: boolean = true) {

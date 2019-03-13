@@ -1,7 +1,10 @@
 import { BulkUsbDevice } from './bulkusbdevice';
 import errstr from './errstr';
 
-export class BulkUsbEndpoint {
+import { IOpenDevice } from './types';
+
+
+export class BulkUsbEndpoint implements IOpenDevice {
   private _cpp: any;
   device: BulkUsbDevice;
   private _cookie: Number;
@@ -16,7 +19,7 @@ export class BulkUsbEndpoint {
     this.isAttached = true;
   }
 
-  write(data: Buffer, timeoutMs: Number): Promise<Number> {
+  write(data: Buffer, timeoutMs: Number): Promise<number> {
     const u8 = Uint8Array.from(data);
     return new Promise((resolve, reject) => {
       if (!this.isAttached) {
