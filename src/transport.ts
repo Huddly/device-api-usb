@@ -324,8 +324,9 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
 
   async performHlinkHandshake(): Promise<any> {
     const cmds = [];
-    cmds.push(this.sendChunk(Buffer.alloc(0)));
-    cmds.push(this.sendChunk(Buffer.alloc(1, 0x00)));
+    cmds.push(this.sendChunk(Buffer.from([])));
+    cmds.push(this.sendChunk(Buffer.from([])));
+    cmds.push(this.sendChunk(Buffer.from([0])));
     cmds.push(this.readChunk(1024));
     const [, , res] = await Promise.all(cmds);
     const decodedMsg = Buffer.from(res).toString('utf8');
