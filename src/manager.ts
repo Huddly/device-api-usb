@@ -55,12 +55,12 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
         throw new Error('Unknown device');
     }
 
-    return {
-      ...device,
+    Object.assign(device, {
       id: uid,
       productId: device.pid,
       productName: name,
-    };
+    });
+    return device;
   }
 
   private isDeviceCached(device: any): boolean {
