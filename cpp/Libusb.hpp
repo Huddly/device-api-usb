@@ -228,6 +228,10 @@ public:
                         Libusb_error err(r);
                         switch (r) {
                         case LIBUSB_ERROR_TIMEOUT:
+                            if (actual_length != 0 && actual_length != length && (ep_in & 0x80) != 0) {
+                                //std::cerr << "Uh, oh. Transferred " << actual_length << " bytes on timeout" << std::endl;
+                                return actual_length;
+                            }
                             break;
                         default:
                             std::cerr << "Libusb: libusb_bulk_transfer failed: " << err.get_message() << std::endl;
