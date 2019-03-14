@@ -107,7 +107,9 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
   }
 
   initEventLoop(): void {
-    this.startbulkReadWrite();
+    this.startbulkReadWrite().catch(e => {
+      this.logger.error('Failed read write loop stopped unexpectingly');
+    });
   }
 
   async startbulkReadWrite(): Promise<void> {
@@ -128,9 +130,14 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
       } catch (e) {
         if (e.message === 'LIBUSB_NO_DEVICE') {
           isAttached = false;
+        } else {
+          this.running = false;
+          throw e;
         }
-        throw e;
+        this.logger.warn(`Failed in bulk read wirte loop with ${e}`);
       }
+      // Allow other fn on callstack to be called
+      await new Promise(res => setImmediate(res));
     }
     this.running = false;
   }
@@ -192,16 +199,16 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
           chunks.push(Buffer.from(buf));
           currentLength += buf.length;
         } catch (e) {
-        if (e.message === 'LIBUSB_ERROR_TIMEOUT') {
-          continue;
+          if (e.message === 'LIBUSB_ERROR_TIMEOUT') {
+            continue;
+          }
+          throw new Error(`read loop failed ${e}`);
         }
-        throw new Error(`read loop failed ${e}`);
       }
-    }
-    const finalBuff = Buffer.concat(chunks);
-    const result = MessagePacket.parseMessage(finalBuff);
-    chunks.splice(0, chunks.length);
-    this.emit(result.message, result);
+      const finalBuff = Buffer.concat(chunks);
+      const result = MessagePacket.parseMessage(finalBuff);
+      chunks.splice(0, chunks.length);
+      this.emit(result.message, result);
   }
 
 
@@ -271,13 +278,12 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
   }
 
   async stopEventLoop(): Promise<any> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       this.removeAllListeners();
       if (this.running) {
         this.running = false;
-      } else {
-        resolve();
       }
+      resolve();
     });
   }
 

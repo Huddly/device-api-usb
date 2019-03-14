@@ -1,10 +1,10 @@
 import chai from 'chai';
 import sinonChai from 'sinon-chai';
-import usb from 'usb';
 import NodeUsbTransport from './../src/transport';
 import sinon from 'sinon';
 import MessagePacket from './../src/messagepacket';
 import crypto from 'crypto';
+import { executionAsyncId } from 'async_hooks';
 
 const expect = chai.expect;
 chai.should();
@@ -23,13 +23,14 @@ const createNewTransportInstance = () => new NodeUsbTransport({
   open: () => ({
     read: () => {},
     write: () => {},
+    close: () => {},
   }),
   close: () => { },
   onDetach: () => {},
   serial: 'Serial123',
 }, dummyLogger);
 
-describe('UsbTransport', () => {
+describe.only('UsbTransport', () => {
   let transport: NodeUsbTransport;
   beforeEach(() => {
     transport = createNewTransportInstance();
@@ -40,6 +41,7 @@ describe('UsbTransport', () => {
       sinon.stub(transport.device, 'close');
       sinon.stub(transport.device, 'open');
     });
+
     afterEach(() => {
       transport.device.open.restore();
       transport.device.close.restore();
@@ -89,16 +91,18 @@ describe('UsbTransport', () => {
       );
     });
 
-    afterEach(() => {
+    afterEach(async () => {
       readStub.restore();
       writeStub.restore();
       startListenStub.restore();
-      transport.stopEventLoop();
+      await transport.stopEventLoop();
     });
 
     it('should start processing read and emit incoming', async () => {
       const encodedMsg = MessagePacket.createMessage('hello-msg', Buffer.from('Greetings!'));
-      readStub.resolves(encodedMsg);
+      readStub.returns(new Promise(resolve => {
+        setTimeout(() => resolve(encodedMsg), 10);
+      }));
       const messagePromise = new Promise(resolves => {
         transport.on('hello-msg', resolves);
       });
@@ -108,11 +112,13 @@ describe('UsbTransport', () => {
       transport.stopEventLoop();
 
       expect(message.message).to.equal('hello-msg');
-      expect(message.payload).to.equal(Buffer.from('Greetings!'));
+      expect(message.payload).to.deep.equal(Buffer.from('Greetings!'));
     });
 
     it('should processing write message and resolve them when sent', async () => {
-      readStub.rejects(new Error('LIBUSB_ERROR_TIMEOUT'));
+      readStub.returns(new Promise((resolve, reject) => {
+        setTimeout(() => reject(new Error('LIBUSB_ERROR_TIMEOUT')), 10);
+      }));
       transport.initEventLoop();
       await transport.write('dummy/cmd');
       transport.stopEventLoop();
@@ -120,8 +126,10 @@ describe('UsbTransport', () => {
       expect(writeStub.firstCall.args[0].toString('utf8')).to.contain('dummy/cmd');
     });
 
-    it('should just continue if it gets timeout on read', () => {
-      readStub.rejects(new Error('LIBUSB_ERROR_TIMEOUT'));
+    it('should just continue if it gets timeout on read', async () => {
+      readStub.returns(new Promise((resolve, reject) => {
+        setTimeout(() => reject(new Error('LIBUSB_ERROR_TIMEOUT')), 100);
+      }));
       try {
         transport.initEventLoop();
       } catch (e) {
@@ -129,14 +137,7 @@ describe('UsbTransport', () => {
       }
     });
 
-    it('should emit TRANSPORT_RESET if it got a empty header', () => {
-      readStub.resolves(Buffer.alloc(0));
-      const resetPromise = new Promise(resolve => transport.on('TRANSPORT_RESET', resolve));
-      transport.initEventLoop();
-      return resetPromise;
-    });
-
-    it.only('should process buffer chunks when not received as a whole', async () => {
+    it('should process buffer chunks when not received as a whole', async () => {
       const message = 'hello-msg';
       const payload = crypto.randomBytes(1024);
       const encodedMsg = MessagePacket.createMessage(message, payload);
@@ -145,33 +146,38 @@ describe('UsbTransport', () => {
       readStub.onFirstCall().resolves(firstChunk);
       readStub.onSecondCall().resolves(secondChunk);
 
-      const emitSpy = sinon.spy();
-      transport.on('hello-msg', emitSpy);
+      const emitMsgPromise = new Promise(resolve => {
+        transport.on('hello-msg', resolve);
+      });
+      transport.initEventLoop();
 
-      expect(emitSpy.callCount).to.equals(1);
-      expect(emitSpy.firstCall.args[0]).to.equals('hello-msg');
-      expect(emitSpy.firstCall.args[1]).to.deep.equals(MessagePacket.parseMessage(encodedMsg));
+      const helloMsg = await emitMsgPromise;
+
+      expect(helloMsg).to.deep.equals(MessagePacket.parseMessage(encodedMsg));
     });
 
-    it('should call #close on error message', async () => {
-      await transport.init();
-      // transport.inEndpoint.on.withArgs('error').onCall(0).callsFake((msg, cb) => cb('Error -1'));
-      // transport.startListen();
-      // expect(closeStub.callCount).to.equals(1);
+    it('should stop event loop on error', async () => {
+      readStub.returns(new Promise((resolve, reject) => {
+        reject(new Error('unknown error'));
+      }));
+      transport.initEventLoop();
+
+      // Let read/write async loop run
+      await new Promise(resolve => setImmediate(resolve));
+
+      expect(readStub.callCount).to.be.equal(1);
+      expect(transport.running).to.equal(false);
     });
 
     describe('on hlink reset sequence', () => {
-      it('should throw an error and close connection', async () => {
-        let resolveReset;
-        const resetPromise = new Promise(resolve => resolveReset = resolve);
-        await transport.init();
-        // transport.inEndpoint.on.withArgs('data').callsFake((msg, cb) => cb(Buffer.from('HLink v0')));
-        // transport.inEndpoint.stopPoll.resolves({});
-        // transport.on('TRANSPORT_RESET', resolveReset);
-        // await transport.startListen();
-
-        // await resetPromise;
-        // expect(closeStub.callCount).to.equals(1);
+      it('should emit TRANSPORT_RESET if it got a empty header', async () => {
+        readStub.returns(new Promise(resolve => {
+          setTimeout(() => resolve(Buffer.alloc(0)), 10);
+        }));
+        const resetPromise = new Promise(resolve => transport.on('TRANSPORT_RESET', resolve));
+        transport.initEventLoop();
+        const message = await resetPromise;
+        expect(message).to.be.undefined;
       });
     });
   });
@@ -228,7 +234,7 @@ describe('UsbTransport', () => {
         await p;
       } catch (e) {
         expect(transport.removeAllListeners).to.have.been.calledWith('timeout_msg');
-        expect(e).to.equals('Request has timed out!');
+        expect(e).to.equals('Request has timed out! timeout_msg 10');
       }
     });
 
@@ -261,28 +267,44 @@ describe('UsbTransport', () => {
 
   describe('#write', () => {
     let transferStub;
+    let readStub;
     beforeEach(async () => {
-      transferStub = sinon.stub(transport, 'transfer').returns(Promise.resolve());
       await transport.init();
+      transferStub = sinon.stub(transport.endpoint, 'write').returns(new Promise(resolve => {
+        setTimeout(resolve, 1000);
+      }));
+      readStub = sinon.stub(transport.endpoint, 'read').returns(new Promise((resolve, reject) => {
+        setTimeout(() => reject(new Error('LIBUSB_ERROR_TIMEOUT')), 1000);
+      }));
     });
 
-    afterEach(() => { transferStub.restore(); });
+    afterEach(async () =>  {
+      transferStub.restore();
+      readStub.restore();
+      await transport.stopEventLoop();
+    });
 
     it('should package the message command and its payload and call transfer', async () => {
-      await transport.write('echo-test', Buffer.alloc(0));
+      const writPromise = transport.write('echo-test', Buffer.alloc(0));
+      transport.initEventLoop();
+      await writPromise;
       expect(transferStub).to.have.calledWith(MessagePacket.createMessage('echo-test', Buffer.alloc(0)));
     });
 
     describe('#subscribe', () => {
       it('should send a hlink subscribe message', async () => {
-        await transport.subscribe('test-subscribe');
+        const subscribePromise = transport.subscribe('test-subscribe');
+        transport.initEventLoop();
+        await subscribePromise;
         expect(transferStub).to.have.calledWith(MessagePacket.createMessage('hlink-mb-subscribe', 'test-subscribe'));
       });
     });
 
     describe('#unsubscribe', () => {
       it('should send a hlink unsubscribe message', async () => {
-        await transport.unsubscribe('test-unsubscribe');
+        const unsubscribePromise = transport.unsubscribe('test-unsubscribe');
+        transport.initEventLoop();
+        await unsubscribePromise;
         expect(transferStub).to.have.calledWith(MessagePacket.createMessage('hlink-mb-unsubscribe', 'test-unsubscribe'));
       });
     });
@@ -296,14 +318,29 @@ describe('UsbTransport', () => {
   });
 
   describe('#close', () => {
+    let transferStub;
+    let readStub;
+    beforeEach(async () => {
+      await transport.init();
+      transferStub = sinon.stub(transport.endpoint, 'write').returns(new Promise(resolve => {
+        setTimeout(resolve, 10);
+      }));
+      readStub = sinon.stub(transport.endpoint, 'read').returns(new Promise((resolve, reject) => {
+        setTimeout(() => reject(new Error('LIBUSB_ERROR_TIMEOUT')), 10);
+      }));
+    });
+
+    afterEach(() => {
+      transferStub.restore();
+      readStub.restore();
+    });
+
     it('should release the vsc interface', async () => {
       await transport.init();
-      const releaseSpy = sinon.spy(transport.vscInterface, 'release');
-      const closeSpy = sinon.spy(transport.device, 'close');
+      const closeSpy = sinon.spy(transport.endpoint, 'close');
+
       await transport.close();
 
-      expect(releaseSpy.callCount).to.equal(1);
-      // expect(releaseSpy.firstCall.args[0]).to.deep.equal([transport.inEndpoint, transport.outEndpoint]);
       expect(closeSpy.callCount).to.equal(1);
     });
 
@@ -315,20 +352,19 @@ describe('UsbTransport', () => {
     });
   });
 
-  // describe('#stopEventLoop', () => {
-  //   it('should call remove all listeners on super class', async () => {
-  //     const removeListenersSpy = sinon.spy(transport, 'removeAllListeners');
-  //     await transport.close();
-  //     expect(removeListenersSpy.callCount).to.equal(1);
-  //   });
-  //   it('should stop poll on read endpoint', async () => {
-  //     transport.running = true;
-  //     await transport.init();
-  //     transport.inEndpoint.stopPoll.callsFake((cb) => cb());
-  //     await transport.close();
-  //     expect(transport.inEndpoint.stopPoll.callCount).to.equals(1);
-  //   });
-  // });
+  describe('#stopEventLoop', () => {
+    it('should call remove all listeners on super class', async () => {
+      const removeListenersSpy = sinon.spy(transport, 'removeAllListeners');
+      await transport.close();
+      expect(removeListenersSpy.callCount).to.equal(1);
+    });
+    it('should stop poll on read endpoint', async () => {
+      transport.running = true;
+      await transport.init();
+      await transport.close();
+      expect(transport.running).to.equals(false);
+    });
+  });
 
   describe('#receive', () => {
     it('should throw error with "Depricated" error message', async () => {

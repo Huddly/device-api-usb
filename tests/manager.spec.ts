@@ -1,7 +1,6 @@
 import sinon from 'sinon';
 import chai, { expect } from 'chai';
 import sinonChai from 'sinon-chai';
-import usb from 'usb';
 import BulkUsb from './../src/bulkusbdevice';
 import DeviceDiscoveryManager from './../src/manager';
 import { EventEmitter } from 'events';
@@ -43,12 +42,12 @@ const dummyLogger = sinon.createStubInstance(Logger);
 describe('HuddlyUsbDeviceManager', () => {
   let devicemanager;
   beforeEach(() => {
-    sinon.stub(usb, 'getDeviceList').returns(mockedDevices);
+    // sinon.stub(usb, 'getDeviceList').returns(mockedDevices);
     devicemanager = new DeviceDiscoveryManager(dummyLogger);
   });
 
   afterEach(() => {
-    usb.getDeviceList.restore();
+    // usb.getDeviceList.restore();
   });
 
   describe('#generateUsbUniqueId', () => {
@@ -215,25 +214,6 @@ describe('HuddlyUsbDeviceManager', () => {
         expect(detachSpy.callCount).to.equal(0);
       });
     });
-
-    describe('on hotplug event not support', () => {
-      let attachStub;
-      let clock;
-      beforeEach(() => {
-        clock = sinon.useFakeTimers();
-        attachStub = sinon.stub(usb, 'on').throws('Hotplug Events not supported!');
-      });
-      afterEach(() => {
-        attachStub.restore();
-        clock.restore();
-      });
-      it('should start discovery poll', () => {
-        const spy = sinon.spy(devicemanager, 'discoverCameras');
-        devicemanager.registerForHotplugEvents(new EventEmitter());
-        clock.tick(1000);
-        expect(spy.called).to.equals(true);
-      });
-    });
   });
 
   describe('#disoverCameras', () => {
@@ -243,7 +223,6 @@ describe('HuddlyUsbDeviceManager', () => {
     beforeEach(() => {
       emitter = new EventEmitter();
       clock = sinon.useFakeTimers();
-      sinon.stub(usb, 'on').throws('Hotplug Events not supported!');
       deviceListStub = sinon.stub(devicemanager, 'deviceList').resolves({
         newDevices: [
           { id: '123', serialNumber: 'SRL123'}
@@ -254,7 +233,6 @@ describe('HuddlyUsbDeviceManager', () => {
       });
     });
     afterEach(() => {
-      usb.on.restore();
       clock.restore();
       deviceListStub.restore();
       devicemanager.destroy();

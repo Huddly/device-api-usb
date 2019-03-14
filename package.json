@@ -41,7 +41,9 @@
     "tslint": "tslint -c tslint.json -p tsconfig.json",
     "test": "nyc mocha -r ts-node/register --recursive \"tests/**/*.spec.ts\"",
     "test-js": "mocha -r ts-node/register --recursive \"lib/tests/**/*.spec.js\"",
-    "napi": "prebuildify --napi --strip --verbose --target=node@10.12.0 --target=electron@4.0.8 "
+    "napi": "prebuildify --napi --strip --verbose --target=node@10.12.0 --target=electron@4.0.8 ",
+    "install": "./node_modules/.bin/node-gyp-build",
+    "postinstall": "ln -s prebuilds lib/prebuilds"
   },
   "nyc": {
     "include": [
@@ -73,11 +75,10 @@
     "p-queue": "^3.0.0",
     "typescript": "^3.2.1",
     "await-sleep": "0.0.1",
-    "node-addon-api": "^1.6.2",
-    "node-gyp-build": "^3.8.0",
-    "usb": "https://huddlysoftware.blob.core.windows.net/node-usb/nodeusb-prod-1.5.3.tar.gz"
+    "node-addon-api": "^1.6.2"
   },
   "devDependencies": {
+    "node-gyp-build": "^3.8.0",
     "@types/mocha": "^5.2.5",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
