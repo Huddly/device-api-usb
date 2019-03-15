@@ -43,19 +43,6 @@ describe('HuddlyDeviceApiUSB', () => {
     });
   });
 
-  describe('#initialize', () => {
-    let discoverCamerasStub;
-    beforeEach(() => {
-      discoverCamerasStub = sinon.stub(deviceApi.deviceDiscoveryManager, 'discoverCameras').resolves();
-    });
-    afterEach(() => discoverCamerasStub.restore());
-
-    it('should spin off the attach/detach event sequence', async () => {
-      await deviceApi.initialize();
-      expect(discoverCamerasStub.called).to.equal(true);
-    });
-  });
-
   describe('#registerForHotplugEvents', () => {
     it('should initialize event emitter and register hotplug events on device manager', async () => {
       const emitter = new EventEmitter();

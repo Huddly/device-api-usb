@@ -14,35 +14,12 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
     this.logger = logger || new Logger(true);
   }
 
-  private generateUsbUniqueId(props: { usbBusNumber: number, usbDeviceAddress: number, usbPortNumbers: Array<Number> }): string {
-    const stringCombo = String(props.usbBusNumber).concat(String(props.usbDeviceAddress).concat(props.usbPortNumbers.toString()));
-    let hash = 0;
-    for (let i = 0; i < stringCombo.length; i++) {
-      const char = stringCombo.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
-    }
-    return hash.toString();
-  }
-
-  private getCachedDevice(device: any): any {
-    return this.attachedDevices.find((dev) => dev.id === device.id);
-  }
-
   registerForHotplugEvents(eventEmitter: EventEmitter): void {
     this.eventEmitter = eventEmitter;
-    this.discoverCameras();
+    BulkUsb.onAttach(this.deviceAttached.bind(this));
   }
 
   private getDeviceObject(device: any) {
-    // Todo: do something that makes sense here
-
-    const uid = this.generateUsbUniqueId({
-      usbBusNumber: device.location[0],
-      usbDeviceAddress: device.location[1],
-      usbPortNumbers: device.location[0],
-    });
-
     let name;
     switch (device.pid) {
       case 0x11:
@@ -56,24 +33,11 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
     }
 
     Object.assign(device, {
-      id: uid,
+      id: device._cookie,
       productId: device.pid,
       productName: name,
     });
     return device;
-  }
-
-  private isDeviceCached(device: any): boolean {
-    return this.attachedDevices.some((dev) => dev.id === device.id || dev.serialNumber === device.serialNumber);
-  }
-
-  private updateCache(newDevices: Array<any>, removedDevice: Array<any>): void {
-    newDevices.forEach(newDevice => this.attachedDevices.push(newDevice));
-    removedDevice.forEach(removedDevice => {
-      this.attachedDevices = this.attachedDevices.filter(
-        device => device.id !== removedDevice.id
-      );
-    });
   }
 
   destroy(): void {
@@ -83,7 +47,6 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
   }
 
   discoverCameras(): void {
-    BulkUsb.onAttach(this.deviceAttached.bind(this));
   }
 
   private deviceAttached(attachedDevice): void {
@@ -92,7 +55,7 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
     }
     const newDevice = this.getDeviceObject(attachedDevice);
     newDevice.onDetach(this.deviceDetached.bind(this));
-    this.updateCache([newDevice], []);
+    this.attachedDevices.push(newDevice);
     this.eventEmitter.emit('ATTACH', newDevice);
   }
 
@@ -100,12 +63,12 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
     if (removedDevice.vid !== this.HUDDLY_VID) {
       return;
     }
-    this.updateCache([], [removedDevice]);
+    this.attachedDevices = this.attachedDevices.filter(d => !removedDevice.equals(d));
     this.eventEmitter.emit('DETACH', removedDevice.serial);
   }
 
   async deviceList(): Promise<any> {
-    return { devices: this.attachedDevices, newDevices: [], removedDevices: [] };
+    return { devices: this.attachedDevices };
   }
 
   async getDevice(serialNumber: any): Promise<any> {
@@ -113,7 +76,7 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
 
     let myDevice = undefined;
     if (serialNumber) {
-      myDevice = devices.find(d => d.serialNumber.indexOf(serialNumber) >= 0);
+      myDevice = devices.find(d => d.serial.indexOf(serialNumber) >= 0);
     } else if (devices.length > 0) {
       myDevice = devices[0];
     }

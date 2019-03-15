@@ -170,6 +170,8 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
       }
       if (headerBuffer.length === 0) {
         this.emit('TRANSPORT_RESET');
+        this.logger.warn('Hlink transport reset message recieved during read');
+        return;
       }
     } while (headerBuffer.length === 0);
 
