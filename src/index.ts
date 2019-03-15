@@ -43,9 +43,7 @@ export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
   }
 
   async getTransport(device): Promise<NodeUsbTransport> {
-    // const usbDevice = await this.deviceDiscoveryManager.getDevice(device.serialNumber);
-
-    const usbDevice = device;
+    const usbDevice = await this.deviceDiscoveryManager.getDevice(device.serialNumber);
     const transport = new NodeUsbTransport(usbDevice, this.logger);
     await transport.init();
     return transport;

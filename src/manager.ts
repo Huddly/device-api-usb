@@ -35,7 +35,7 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
     Object.assign(device, {
       id: device._cookie,
       productId: device.pid,
-      productName: name,
+      productName: name
     });
     return device;
   }
@@ -64,11 +64,14 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
       return;
     }
     this.attachedDevices = this.attachedDevices.filter(d => !removedDevice.equals(d));
-    this.eventEmitter.emit('DETACH', removedDevice.serial);
+    this.eventEmitter.emit('DETACH', removedDevice.serialNumber);
   }
 
   async deviceList(): Promise<any> {
-    return { devices: this.attachedDevices };
+    // Fixme: Do dummy attach to init polling
+    BulkUsb.onAttach(async () => {});
+    const devices = await BulkUsb.listDevices();
+    return { devices };
   }
 
   async getDevice(serialNumber: any): Promise<any> {
@@ -76,7 +79,7 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
 
     let myDevice = undefined;
     if (serialNumber) {
-      myDevice = devices.find(d => d.serial.indexOf(serialNumber) >= 0);
+      myDevice = devices.find(d => d.serialNumber.indexOf(serialNumber) >= 0);
     } else if (devices.length > 0) {
       myDevice = devices[0];
     }

@@ -8,7 +8,7 @@ export class BulkUsbDevice {
   private _cpp: any;
   vid: number;
   pid: number;
-  serial: string;
+  serialNumber: string;
   location: ReadonlyArray<number>;
   private _cookie: number;
   /** @internal */
@@ -20,7 +20,7 @@ export class BulkUsbDevice {
     this._cpp = cpp;
     this.vid = information.vid;
     this.pid = information.pid;
-    this.serial = information.serial;
+    this.serialNumber = information.serial;
     this.location = Object.freeze(information.location);
     this._cookie = information.cookie;
     this._onDetaches = [];

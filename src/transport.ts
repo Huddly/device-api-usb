@@ -241,7 +241,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
   }
 
   read(receiveMsg: string = 'unknown', timeout: number = 500): Promise<any> {
-    throw new Error('Depricated Method!');
+    throw new Error('Deprecated Method!');
   }
 
   write(cmd: string, payload: any = Buffer.alloc(0)): Promise<any> {

@@ -255,12 +255,12 @@ describe('UsbTransport', () => {
   });
 
   describe('#read', () => {
-    it('should throw error with "Depricated" error message', async () => {
+    it('should throw error with "Deprecated" error message', async () => {
       try {
         await transport.read();
         expect(true).to.equals(false);
       } catch (e) {
-        expect(e.message).to.equals('Depricated Method!');
+        expect(e.message).to.equals('Deprecated Method!');
       }
     });
   });
@@ -367,12 +367,12 @@ describe('UsbTransport', () => {
   });
 
   describe('#receive', () => {
-    it('should throw error with "Depricated" error message', async () => {
+    it('should throw error with "Deprecated" error message', async () => {
       try {
         await transport.receive();
         expect(true).to.equals(false);
       } catch (e) {
-        expect(e.message).to.equals('Depricated Method!');
+        expect(e.message).to.equals('Deprecated Method!');
       }
     });
   });
@@ -508,7 +508,7 @@ describe('UsbTransport', () => {
         await transport.performHlinkHandshake();
         expect(true).to.equals(false);
       } catch (error) {
-        expect(error).to.equal('HLink handshake mechanism failed! Wrong version!');
+        expect(error).to.contain('Hlink handshake has failed!');
       }
     });
   });

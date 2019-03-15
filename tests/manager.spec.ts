@@ -15,7 +15,7 @@ const mockedDevices = [
   {
       vid: 11225,
       pid: 33,
-      serial: 'B40I00070',
+      serialNumber: 'B40I00070',
       location: [ 0, 2 ],
       onDetach: sinon.stub(),
       equals: sinon.stub(),
@@ -24,7 +24,7 @@ const mockedDevices = [
   {
     vid: 11225,
     pid: 33,
-    serial: 'B40I09970',
+    serialNumber: 'B40I09970',
     location: [ 4, 6 ],
     onDetach: sinon.stub(),
     equals: sinon.stub(),
@@ -33,7 +33,7 @@ const mockedDevices = [
   {
     vid: 0x2bd1,
     pid: 0x22,
-    serial: 'ABCDSF',
+    serialNumber: 'ABCDSF',
     location: [ 1, 3 ],
     onDetach: sinon.stub(),
     equals: sinon.stub(),
@@ -69,7 +69,7 @@ describe('HuddlyUsbDeviceManager', () => {
       it('should emit USB_ATTACH when a huddly device is attached', () => {
         const attachPromise = new Promise((resolve) => {
           emitter.on('ATTACH', (device) => {
-            expect(device.serial).to.equal(mockedDevices[0].serial);
+            expect(device.serialNumber).to.equal(mockedDevices[0].serialNumber);
             expect(device.productName).to.equal('Huddly IQ');
             resolve();
           });
@@ -104,7 +104,7 @@ describe('HuddlyUsbDeviceManager', () => {
       it('should emit USB_DETACH with serial', () => {
         const detachPromise = new Promise((resolve) => {
           emitter.on('DETACH', (deviceId) => {
-            expect(deviceId).to.equal(mockedDevices[0].serial);
+            expect(deviceId).to.equal(mockedDevices[0].serialNumber);
             resolve();
           });
         });
@@ -129,8 +129,7 @@ describe('HuddlyUsbDeviceManager', () => {
         devicemanager.registerForHotplugEvents(emitter);
         await attachStub.callArgWith(0, mockedDevices[2]);
         mockedDevices[0].onDetach.callArgWith(0, mockedDevices[2]);
-        const { devices } = await devicemanager.deviceList();
-        expect(devices.length).to.be.equal(0);
+        expect(devicemanager.attachedDevices.length).to.be.equal(0);
       });
     });
   });
@@ -150,11 +149,11 @@ describe('HuddlyUsbDeviceManager', () => {
 
     it('should fire attach events for all new discovered cameras', (done) => {
       emitter.on('ATTACH', (d) => {
-        expect(d.serial).to.equals('SRL123');
+        expect(d.serialNumber).to.equals('SRL123');
         done();
       });
       devicemanager.registerForHotplugEvents(emitter);
-      attachStub.callArgWith(0, { id: '123', serial: 'SRL123', pid: 0x21, vid: devicemanager.HUDDLY_VID, onDetach: () => {}});
+      attachStub.callArgWith(0, { id: '123', serialNumber: 'SRL123', pid: 0x21, vid: devicemanager.HUDDLY_VID, onDetach: () => {}});
     });
 
     it('should fire detach events for all undiscovered cached cameras', (done) => {
@@ -163,53 +162,46 @@ describe('HuddlyUsbDeviceManager', () => {
         done();
       });
       devicemanager.registerForHotplugEvents(emitter);
-      attachStub.callArgWith(0, { id: '123', serial: 'SRL123', pid: 0x21, vid: devicemanager.HUDDLY_VID, onDetach: (cb) => {
-        cb({ id: '456', serial: 'SRL456', pid: 0x21, vid: devicemanager.HUDDLY_VID });
+      attachStub.callArgWith(0, { id: '123', serialNumber: 'SRL123', pid: 0x21, vid: devicemanager.HUDDLY_VID, onDetach: (cb) => {
+        cb({ id: '456', serialNumber: 'SRL456', pid: 0x21, vid: devicemanager.HUDDLY_VID });
       }});
 
     });
   });
 
   describe('#deviceList', () => {
-    let attachStub;
-    let detachedDevice;
+    let listDeviceStub;
     beforeEach(() => {
       /* Add device that is not returned from `usb.deviceList`.
       * This device will serve as a detached device.
       */
-      detachedDevice = { id: '123', serial: 'SRL123', pid: 0x21, vid: devicemanager.HUDDLY_VID, onDetach: (cb) => {} };
-      devicemanager.attachedDevices.push(detachedDevice);
-      attachStub = sinon.stub(BulkUsb, 'onAttach');
-      devicemanager.registerForHotplugEvents(new EventEmitter());
-      attachStub.callArgWith(0, detachedDevice);
+      listDeviceStub = sinon.stub(BulkUsb, 'listDevices').resolves([
+        { id: '123', serialNumber: 'SRL123', pid: 0x21, vid: devicemanager.HUDDLY_VID, onDetach: (cb) => {} },
+      ]);
     });
 
     afterEach(() => {
-      attachStub.restore();
-      devicemanager.attachedDevices = [];
+      listDeviceStub.restore();
     });
 
-    it('should update cache with new devices', async () => {
+    it('list devices', async () => {
       const { devices } = await devicemanager.deviceList();
-      expect(devices.length).to.equals(2);
-      expect(devicemanager.attachedDevices.length).to.equal(2);
+      expect(devices[0].serialNumber).to.equals('SRL123');
     });
   });
 
   describe('#getDevice', () => {
-    let attachStub;
+    let listDeviceStub;
     beforeEach(() => {
       /* Add device that is not returned from `usb.deviceList`.
       * This device will serve as a detached device.
       */
-      attachStub = sinon.stub(BulkUsb, 'onAttach');
       devicemanager.registerForHotplugEvents(new EventEmitter());
-      attachStub.callArgWith(0, mockedDevices[0]);
-      attachStub.callArgWith(0, mockedDevices[1]);
+      listDeviceStub = sinon.stub(BulkUsb, 'listDevices').resolves(mockedDevices);
     });
 
     afterEach(() => {
-      attachStub.restore();
+      listDeviceStub.restore();
     });
 
     it('should return null when serial does not exist', async () => {
@@ -219,12 +211,12 @@ describe('HuddlyUsbDeviceManager', () => {
 
     it('should return first discovered device when serial number is not specified', async () => {
       const device = await devicemanager.getDevice();
-      expect(device.serial).to.equal(mockedDevices[0].serial);
+      expect(device.serialNumber).to.equal(mockedDevices[0].serialNumber);
     });
 
     it('should return the specific attachedDevice when serial number provided', async () => {
-      const device = await devicemanager.getDevice(mockedDevices[1].serial);
-      expect(device.serial).to.equal(mockedDevices[1].serial);
+      const device = await devicemanager.getDevice(mockedDevices[1].serialNumber);
+      expect(device.serialNumber).to.equal(mockedDevices[1].serialNumber);
     });
   });
 });
