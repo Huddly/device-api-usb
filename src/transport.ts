@@ -2,7 +2,6 @@ import ITransport from '@huddly/sdk/lib/src/interfaces/iTransport';
 import DeviceEndpoint from './bulkusbendpoint';
 import MessagePacket from './messagepacket';
 import { EventEmitter } from 'events';
-import { timingSafeEqual } from 'crypto';
 
 const MAX_USB_PACKET = 16 * 1024;
 
@@ -160,20 +159,15 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
 
   async readMessage(): Promise<void> {
     let headerBuffer: Buffer;
-    if (!this.endpoint) {
-      throw new Error('Reading from closed endpoint');
-    }
     do {
-      let uint8Buf: Buffer;
       try {
-        uint8Buf = await this.endpoint.read(4096, HEADER_TIMEOUT_MS);
+        headerBuffer = await this.endpoint.read(4096, HEADER_TIMEOUT_MS);
       } catch (e) {
         if (e.message === 'LIBUSB_ERROR_TIMEOUT') {
           return;
         }
         throw e;
       }
-      headerBuffer = Buffer.from(uint8Buf);
       if (headerBuffer.length === 0) {
         this.emit('TRANSPORT_RESET');
       }
@@ -183,15 +177,11 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
       throw new Error(`Hlink: header is too small ${headerBuffer.length}`);
     }
 
-    const parsedChunk = MessagePacket.parseMessage(headerBuffer);
-    const expectedSize = MessagePacket.HEADER_SIZES.HDR_SIZE + parsedChunk.messageSize + parsedChunk.payloadSize;
+    const expectedSize = MessagePacket.parseMessage(headerBuffer).totalSize();
     const chunks = [headerBuffer];
 
     for (let currentLength = headerBuffer.length; currentLength < expectedSize;) {
       try {
-        if (!this.endpoint) {
-          throw new Error('Reading from closed endpoint');
-        }
         const buf = await this.endpoint.read(
           Math.min(AlignUp(expectedSize - currentLength, 1024), MAX_USB_PACKET),
           this.timeoutMs
@@ -307,7 +297,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
   }
 
   async receive(): Promise<Buffer> {
-    throw new Error('Depricated Method!');
+    throw new Error('Deprecated Method!');
   }
 
   async transfer(messageBuffer: Buffer) {
@@ -328,7 +318,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     return this.endpoint.write(chunk, 10000);
   }
 
-  async performHlinkHandshake(): Promise<any> {
+  async performHlinkHandshake(): Promise<void> {
     const cmds = [];
     cmds.push(this.sendChunk(Buffer.from([])));
     cmds.push(this.sendChunk(Buffer.from([])));
@@ -337,9 +327,11 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     const [, , , res] = await Promise.all(cmds);
     const decodedMsg = Buffer.from(res).toString('utf8');
 
-    if (decodedMsg !== 'HLink v0') {
-      this.logger.warn('Hlink handshake has failed! Wrong version!');
-      return Promise.reject('HLink handshake mechanism failed! Wrong version!');
+    const expected = 'HLink v0';
+    if (decodedMsg !== expected) {
+      const message = `Hlink handshake has failed! Wrong version. Expected ${expected}, got ${decodedMsg}.`;
+      this.logger.warn(message);
+      return Promise.reject(message);
     }
     return Promise.resolve();
   }

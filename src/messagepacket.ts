@@ -1,4 +1,23 @@
 
+class Message {
+  message: string;
+  messageSize: number;
+  payload: Buffer;
+  payloadSize: number;
+  constructor(message: string, messageSize: number, payload: Buffer, payloadSize: number) {
+    this.message = message;
+    this.messageSize = messageSize;
+    this.payload = payload;
+    this.payloadSize = payloadSize;
+  }
+  totalSize(): number {
+    return MessagePacket.HEADER_SIZES.HDR_SIZE + this.messageSize + this.payloadSize;
+  }
+  isComplete(): boolean {
+    return this.payload.byteLength >= this.payloadSize;
+  }
+}
+
 /**
  * @ignore
  *
@@ -27,22 +46,29 @@ export default class MessagePacket {
     return packageBuffer;
   }
 
-  static parseMessage(messageBuffer: Buffer): any {
+  static parseMessage(messageBuffer: Buffer): Readonly<Message> {
+    const HDR_SIZE = MessagePacket.HEADER_SIZES.HDR_SIZE;
+    if (messageBuffer.byteLength < HDR_SIZE) {
+      throw new Error(`Header must be at least ${HDR_SIZE} bytes long. Not ${messageBuffer.length}.`);
+    }
+    const reserved = messageBuffer.slice(0, MessagePacket.HEADER_SIZES.HDR_MESSAGE_SIZE_OFFSET);
+    Uint8Array.from(reserved).forEach((num, idx) => {
+      if (num !== 0) {
+        throw new Error(`Expected zero byte in reserved area at offset ${idx}, got ${num}`);
+      }
+    });
+
+    let ret: Message;
     try {
       const messageSize = messageBuffer.readUInt16LE(MessagePacket.HEADER_SIZES.HDR_MESSAGE_SIZE_OFFSET);
       const payloadSize = messageBuffer.readUInt32LE(MessagePacket.HEADER_SIZES.HDR_PAYLOAD_SIZE_OFFSET);
-      const payloadOffset = messageSize + MessagePacket.HEADER_SIZES.HDR_SIZE;
-      const message = messageBuffer.toString('utf8', MessagePacket.HEADER_SIZES.HDR_SIZE, payloadOffset);
+      const payloadOffset = messageSize + HDR_SIZE;
+      const message = messageBuffer.toString('utf8', HDR_SIZE, payloadOffset);
       const payload = messageBuffer.slice(payloadOffset);
-
-      return {
-        message,
-        payload,
-        messageSize,
-        payloadSize,
-      };
+      ret = new Message(message, messageSize, payload, payloadSize);
     } catch (e) {
       throw new Error(`Hlink message could not be parsed! ${e}`);
     }
+    return Object.freeze(ret);
   }
 }
