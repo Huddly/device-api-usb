@@ -130,8 +130,8 @@ struct Context {
         , cookie_counter(10000)
         , devices()
         , open_cookie(0)
-        , claim(nullptr)
-        , ep(nullptr) {}
+        , ep_claim(nullptr)
+    {}
 
     struct Device {
         Libusb::Device dev;
@@ -193,8 +193,7 @@ struct Context {
     }
     QueueItemPtr handle(QueueItemPtr itemptr, OpenDevice const *command) {
         //std::cout << "handling OpenDevice" << std::endl;
-        claim.reset();
-        ep.reset();
+        ep_claim.reset();
         auto sptr = std::shared_ptr<QueueItem>(std::move(itemptr));
         auto maybe_device = devices.find(command->cookie.cookie);
         if (maybe_device == devices.end()) {
@@ -214,11 +213,12 @@ struct Context {
                 });
         }
 
-        auto ep_claim = std::get<EndpointAndClaim>(std::move(maybe_endpoint_and_claim));
+        ep_claim = std::make_unique<EndpointAndClaim>(
+            std::move(
+                std::get<EndpointAndClaim>(
+                    std::move(maybe_endpoint_and_claim))));
         auto cookie = get_cookie();
         open_cookie = cookie.cookie;
-        claim = std::make_unique<Libusb::Device::Open::Claimed_interface>(std::move(ep_claim.claim));
-        ep = std::make_unique<Libusb::Device::Open::Endpoint>(std::move(ep_claim.ep));
         return std::make_unique<ReturnItem>(
             "open_device success",
             [sptr=std::move(sptr), cookie]() {
@@ -237,15 +237,13 @@ struct Context {
                     command->cb(-100, 0);
                 });
         }
-        assert(ep);
-        assert(claim);
-        auto maybe = ep->out(command->data.data(), command->data.size(), command->timeout_ms);
+        assert(ep_claim);
+        auto maybe = ep_claim->ep.out(command->data.data(), command->data.size(), command->timeout_ms);
         if (std::holds_alternative<Libusb_error>(maybe)) {
             auto err = std::get<Libusb_error>(maybe);
             if (err.number == LIBUSB_ERROR_NO_DEVICE) {
                 open_cookie = 0;
-                claim.reset();
-                ep.reset();
+                ep_claim.reset();
             }
             return std::make_unique<ReturnItem>(
                 "write_device libusb error",
@@ -270,16 +268,14 @@ struct Context {
                     command->cb(-100, {});
                 });
         }
-        assert(claim);
-        assert(ep);
+        assert(ep_claim);
         std::vector<uint8_t> buffer(command->max_size);
-        auto maybe = ep->in(buffer.data(), buffer.size(), command->timeout_ms);
+        auto maybe = ep_claim->ep.in(buffer.data(), buffer.size(), command->timeout_ms);
         if (std::holds_alternative<Libusb_error>(maybe)) {
             auto err = std::get<Libusb_error>(maybe);
             if (err.number == LIBUSB_ERROR_NO_DEVICE) {
                 open_cookie = 0;
-                claim.reset();
-                ep.reset();
+                ep_claim.reset();
             }
             return std::make_unique<ReturnItem>(
                 "read_device libusb error",
@@ -305,8 +301,7 @@ struct Context {
                     command->cb(-100);
                 });
         }
-        ep.reset();
-        claim.reset();
+        ep_claim.reset();
         open_cookie = 0;
         return std::make_unique<ReturnItem>(
             "close_device success",
@@ -328,8 +323,7 @@ struct Context {
     std::unordered_map<uint32_t, Device> devices;
 
     uint32_t open_cookie;
-    std::unique_ptr<Libusb::Device::Open::Claimed_interface> claim;
-    std::unique_ptr<Libusb::Device::Open::Endpoint> ep;
+    std::unique_ptr<EndpointAndClaim> ep_claim;
 };
 
 void Usb_worker_arg::process() {
