@@ -25,18 +25,26 @@ struct CallbackInfo {
     struct Scope {
         explicit Scope(Napi::Env const &env, Napi::AsyncContext const &actx)
             : hscope(env)
-            , cbscope(env, actx) {}
+#if (NAPI_VERSION > 2)
+            , cbscope(env, actx)
+#endif
+        {}
 
         Scope(Scope &&o)
             : hscope(std::move(o.hscope))
-            , cbscope(std::move(o.cbscope)) {}
+#if (NAPI_VERSION > 2)
+            , cbscope(std::move(o.cbscope))
+#endif
+        {}
 
         Scope(Scope const &) = delete;
         Scope &operator=(Scope const &) = delete;
         Scope &operator=(Scope &&) = delete;
     private:
         Napi::HandleScope hscope;
+#if (NAPI_VERSION > 2)
         Napi::CallbackScope cbscope;
+#endif
     };
     Scope scope() {
         return Scope(env, actx);
