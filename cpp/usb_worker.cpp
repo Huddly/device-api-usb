@@ -3,6 +3,8 @@
 #include "find_interface.hpp"
 
 #include <variant>
+#include <thread>
+#include <chrono>
 #include <unordered_map>
 
 struct ListDevices {
@@ -78,7 +80,7 @@ struct ReturnItem : public QueueItem {
     std::function<void(void)> const cb;
 };
 
-static std::string maybe_get_string(Libusb::Device & dev, uint8_t string) {
+static std::string maybe_get_string(Libusb::Device & dev, uint8_t string, int retry=3) {
     auto maybe_devh = dev.open(true);
     if (std::holds_alternative<Libusb_error>(maybe_devh)) {
         auto err = std::get<Libusb_error>(maybe_devh);
@@ -87,6 +89,12 @@ static std::string maybe_get_string(Libusb::Device & dev, uint8_t string) {
         case LIBUSB_ERROR_NOT_SUPPORTED:
         case LIBUSB_ERROR_NOT_FOUND:
             break;
+        case LIBUSB_ERROR_NO_DEVICE:
+            if (retry <= 0) {
+                return err.get_message();
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(500/retry));
+            return maybe_get_string(dev, string, retry - 1);
         default:
             std::cerr << "Error opening device for string descriptor: " << err.get_message() << std::endl;
             break;
@@ -103,8 +111,21 @@ static std::string maybe_get_string(Libusb::Device & dev, uint8_t string) {
     return std::get<std::string>(std::move(maybe_string));
 }
 
+static std::variant<EndpointAndClaim, HLink_error> retry_open(Libusb::Device dev) {
+    for (auto i = 0u; i < 2; i++) {
+        auto maybe = get_huddly_endpoint_and_claim(dev);
+        if (std::holds_alternative<EndpointAndClaim>(maybe)) {
+            return maybe;
+        }
+        auto const err = std::get<HLink_error>(std::move(maybe));
+        std::cerr << "Opening device failed: " << err.message << ". Retrying." << std::endl;
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    }
+    return get_huddly_endpoint_and_claim(dev);
+}
+
 struct Context {
-    Context(Libusb ctx)
+    explicit Context(Libusb ctx)
         : ctx(std::move(ctx))
         , cookie_counter(10000)
         , devices()
@@ -184,7 +205,7 @@ struct Context {
                 });
         }
         auto device = maybe_device->second.dev;
-        auto maybe_endpoint_and_claim = get_huddly_endpoint_and_claim(device);
+        auto maybe_endpoint_and_claim = retry_open(device);
         if (auto const err = std::get_if<HLink_error>(&maybe_endpoint_and_claim)) {
             return std::make_unique<ReturnItem>(
                 "open_device libusb error",

@@ -17,7 +17,7 @@ static inline std::variant<EndpointAndClaim, HLink_error> get_huddly_endpoint_an
     auto const config = std::get<Libusb::Config_descriptor>(std::move(maybe_config));
 
     size_t const num_ifcs = config.desc->bNumInterfaces;
-    std::cout << "Number of interfaces: " << num_ifcs << std::endl;
+    //std::cout << "Number of interfaces: " << num_ifcs << std::endl;
 
     const libusb_interface_descriptor * ifc = nullptr;
     for (auto i = 0u; i < num_ifcs; i++) {
@@ -55,11 +55,11 @@ static inline std::variant<EndpointAndClaim, HLink_error> get_huddly_endpoint_an
         return HLink_error(HLink_error::Errors::endpoint_error, "Out endpoint not found");
     }
 
-    std::cout << "Interface " << static_cast<int>(ifc->bInterfaceNumber)
+    /* std::cout << "Interface " << static_cast<int>(ifc->bInterfaceNumber)
             << " is VSC interface. Using this interface for HLink."
             << " ep out: " << std::hex << static_cast<int>(vsc_ep_out_num)
             << " ep in: " << static_cast<int>(vsc_ep_in_num)
-            << std::dec << std::endl;
+            << std::dec << std::endl;*/
 
     auto const maybe_devh = dev.open();
     if (std::holds_alternative<Libusb_error>(maybe_devh)) {
