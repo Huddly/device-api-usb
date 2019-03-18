@@ -217,6 +217,20 @@ public:
                 std::variant<int, Libusb_error> in(uint8_t *data, int length, unsigned timeout) const {
                     return bulk_transfer(ep_in | 0x80, data, length, timeout);
                 }
+                std::variant<std::monostate, Libusb_error> out_clear_halt() const {
+                    int const r = libusb_clear_halt(inner->devh, ep_out);
+                    if (r != 0) {
+                        return Libusb_error(r);
+                    }
+                    return std::monostate();
+                }
+                std::variant<std::monostate, Libusb_error> in_clear_halt() const {
+                    int const r = libusb_clear_halt(inner->devh, ep_in);
+                    if (r != 0) {
+                        return Libusb_error(r);
+                    }
+                    return std::monostate();
+                }
                 uint8_t const ep_out;
                 uint8_t const ep_in;
 				Libusb get_context() const { return Libusb(inner->ctx); }

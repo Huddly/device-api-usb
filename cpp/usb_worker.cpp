@@ -241,9 +241,14 @@ struct Context {
         auto maybe = ep_claim->ep.out(command->data.data(), command->data.size(), command->timeout_ms);
         if (std::holds_alternative<Libusb_error>(maybe)) {
             auto err = std::get<Libusb_error>(maybe);
-            if (err.number == LIBUSB_ERROR_NO_DEVICE) {
+            switch (err.number) {
+            case LIBUSB_ERROR_NO_DEVICE:
                 open_cookie = 0;
                 ep_claim.reset();
+                break;
+            case LIBUSB_ERROR_PIPE:
+                ep_claim->ep.out_clear_halt();
+                break;
             }
             return std::make_unique<ReturnItem>(
                 "write_device libusb error",
@@ -273,9 +278,14 @@ struct Context {
         auto maybe = ep_claim->ep.in(buffer.data(), buffer.size(), command->timeout_ms);
         if (std::holds_alternative<Libusb_error>(maybe)) {
             auto err = std::get<Libusb_error>(maybe);
-            if (err.number == LIBUSB_ERROR_NO_DEVICE) {
+            switch (err.number) {
+            case LIBUSB_ERROR_NO_DEVICE:
                 open_cookie = 0;
                 ep_claim.reset();
+                break;
+            case LIBUSB_ERROR_PIPE:
+                ep_claim->ep.in_clear_halt();
+                break;
             }
             return std::make_unique<ReturnItem>(
                 "read_device libusb error",
