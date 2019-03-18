@@ -18,6 +18,7 @@ pipeline {
       parallel {
         stage('node 8 mac') {
           agent { label "osx" }
+          options { timeout(time: 1, unit: 'HOURS') }
           environment {
             NODE_VERSION="11.9.0"
             RELEASE="${params.ReleaseBuild}"
@@ -34,6 +35,7 @@ pipeline {
         }
         stage('node 8 linux') {
           agent { label "linux && rev6" }
+          options { timeout(time: 1, unit: 'HOURS') }
           environment {
             NODE_VERSION="11.9.0"
             RELEASE="${params.ReleaseBuild}"
@@ -50,6 +52,7 @@ pipeline {
         }
         stage('node 8 win') {
           agent { label "win10-ci01" }
+          options { timeout(time: 1, unit: 'HOURS') }
           environment {
             NODE_VERSION="11.9.0"
             RELEASE="${params.ReleaseBuild}"
