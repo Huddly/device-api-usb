@@ -227,6 +227,21 @@ struct Context {
                 command.cb(0, cookie);
             });
     }
+private:
+    Libusb_error handle_clear_halt_result(Libusb_error original, std::variant<std::monostate, Libusb_error> result) {
+        if (std::holds_alternative<std::monostate>(result)) {
+            return original;
+        }
+        auto err = std::get<Libusb_error>(std::move(result));
+        std::cerr << "clear_halt gave error " << err.get_message() << std::endl;
+        if (err.number == LIBUSB_ERROR_NO_DEVICE) {
+            open_cookie = 0;
+            ep_claim.reset();
+            return err;
+        }
+        return original;
+    }
+public:
     QueueItemPtr handle(QueueItemPtr itemptr, WriteDevice const *command) {
         //std::cout << "handling WriteDevice" << std::endl;
         auto sptr = std::shared_ptr<QueueItem>(std::move(itemptr));
@@ -247,7 +262,7 @@ struct Context {
                 ep_claim.reset();
                 break;
             case LIBUSB_ERROR_PIPE:
-                ep_claim->ep.out_clear_halt();
+                handle_clear_halt_result(err, ep_claim->ep.out_clear_halt());
                 break;
             }
             return std::make_unique<ReturnItem>(
@@ -284,7 +299,7 @@ struct Context {
                 ep_claim.reset();
                 break;
             case LIBUSB_ERROR_PIPE:
-                ep_claim->ep.in_clear_halt();
+                handle_clear_halt_result(err, ep_claim->ep.in_clear_halt());
                 break;
             }
             return std::make_unique<ReturnItem>(
