@@ -107,7 +107,8 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
 
   initEventLoop(): void {
     this.startbulkReadWrite().catch(e => {
-      this.logger.error('Failed read write loop stopped unexpectingly');
+      this.logger.error(`Failed read write loop stopped unexpectingly ${e}`);
+      this.emit('ERROR', e);
     });
   }
 
@@ -129,9 +130,6 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
       } catch (e) {
         if (e.message === 'LIBUSB_NO_DEVICE') {
           isAttached = false;
-        } else {
-          this.running = false;
-          throw e;
         }
         this.logger.warn(`Failed in bulk read write loop with ${e}. Resuming.`);
       }
@@ -237,6 +235,11 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
       this.once(msg, res => {
         clearTimeout(timer);
         resolve(res);
+      });
+
+      this.once('ERROR', error => {
+        clearTimeout(timer);
+        reject(error);
       });
     });
   }

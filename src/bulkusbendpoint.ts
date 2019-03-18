@@ -6,8 +6,6 @@ export class BulkUsbEndpoint {
   device: BulkUsbDevice;
   private _cookie: Number;
   isAttached: boolean;
-  /** @internal */
-  _onDetaches: Array<Function>;
 
   constructor(cpp: any, device: BulkUsbDevice, information: any) {
     this._cpp = cpp;
@@ -27,7 +25,7 @@ export class BulkUsbEndpoint {
           const error = errstr(ret);
           if (error.message === 'LIBUSB_ERROR_NO_DEVICE') {
             this.isAttached = false;
-            this._onDetaches.forEach(cb => cb());
+            this.device._onDetaches.forEach(cb => cb(this.device));
           }
           return reject(error);
         }
@@ -46,7 +44,7 @@ export class BulkUsbEndpoint {
           const error = errstr(ret);
           if (error.message === 'LIBUSB_ERROR_NO_DEVICE') {
             this.isAttached = false;
-            this._onDetaches.forEach(cb => cb());
+            this.device._onDetaches.forEach(cb => cb(this.device));
           }
           return reject(error);
         }

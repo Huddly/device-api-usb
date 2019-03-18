@@ -156,7 +156,7 @@ describe('UsbTransport', () => {
       expect(helloMsg).to.deep.equals(MessagePacket.parseMessage(encodedMsg));
     });
 
-    it('should stop event loop on error', async () => {
+    it('should not stop event loop on error', async () => {
       readStub.returns(new Promise((resolve, reject) => {
         reject(new Error('unknown error'));
       }));
@@ -166,7 +166,7 @@ describe('UsbTransport', () => {
       await new Promise(resolve => setImmediate(resolve));
 
       expect(readStub.callCount).to.be.equal(1);
-      expect(transport.running).to.equal(false);
+      expect(transport.running).to.equal(true);
     });
 
     describe('on hlink reset sequence', () => {
