@@ -133,11 +133,12 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
           this.running = false;
           throw e;
         }
-        this.logger.warn(`Failed in bulk read wirte loop with ${e}`);
+        this.logger.warn(`Failed in bulk read write loop with ${e}. Resuming.`);
       }
       // Allow other fn on callstack to be called
       await new Promise(res => setImmediate(res));
     }
+    this.logger.warn(`Read write loop terminated. isAttached=${isAttached}. running=${this.running}`);
     this.running = false;
   }
 
@@ -272,9 +273,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
   async stopEventLoop(): Promise<any> {
     return new Promise((resolve) => {
       this.removeAllListeners();
-      if (this.running) {
-        this.running = false;
-      }
+      this.running = false;
       resolve();
     });
   }
