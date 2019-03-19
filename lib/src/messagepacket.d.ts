@@ -1,4 +1,3 @@
-/// <reference types="node" />
 declare class Message {
     message: string;
     messageSize: number;

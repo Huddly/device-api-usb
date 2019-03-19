@@ -1,4 +1,3 @@
-/// <reference types="node" />
 import { BulkUsbDevice } from './bulkusbdevice';
 export declare class BulkUsbEndpoint {
     private _cpp;

@@ -1,4 +1,3 @@
-/// <reference types="node" />
 import IHuddlyDeviceAPI from '@huddly/sdk/lib/src/interfaces/iHuddlyDeviceAPI';
 import NodeUsbTransport from './transport';
 import { EventEmitter } from 'events';

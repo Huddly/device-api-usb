@@ -1,4 +1,3 @@
-/// <reference types="node" />
 import ITransport from '@huddly/sdk/lib/src/interfaces/iTransport';
 import DeviceEndpoint from './bulkusbendpoint';
 import { EventEmitter } from 'events';
