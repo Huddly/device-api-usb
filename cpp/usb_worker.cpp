@@ -358,7 +358,7 @@ void Usb_worker_arg::process() {
             //std::cout << "\t process() done" << std::endl;
             return;
         }
-        auto ret = ReturnItem::upcast(item);
+        auto &ret = ReturnItem::upcast(item);
         //std::cout << "\t process() processing return: " << ret.get_name() << std::endl;
         ret.cb();
     }

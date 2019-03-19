@@ -1,5 +1,6 @@
 #include "usb_worker.hpp"
 #include "queue_uv.hpp"
+#define NAPI_VERSION 3
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Weffc++"
 #include <napi.h>
@@ -23,18 +24,16 @@ struct CallbackInfo {
     CallbackInfo &operator=(CallbackInfo &&) = delete;
 
     struct Scope {
-        explicit Scope(Napi::Env const &env, Napi::AsyncContext const &actx)
+        explicit Scope(Napi::Env const &env, Napi::AsyncContext actx)
             : hscope(env)
-#if (NAPI_VERSION > 2)
-            , cbscope(env, actx)
-#endif
+            , actx(std::move(actx))
+            , cbscope(env, this->actx)
         {}
 
         Scope(Scope &&o)
             : hscope(std::move(o.hscope))
-#if (NAPI_VERSION > 2)
+            , actx(std::move(o.actx))
             , cbscope(std::move(o.cbscope))
-#endif
         {}
 
         Scope(Scope const &) = delete;
@@ -42,12 +41,11 @@ struct CallbackInfo {
         Scope &operator=(Scope &&) = delete;
     private:
         Napi::HandleScope hscope;
-#if (NAPI_VERSION > 2)
+        Napi::AsyncContext actx;
         Napi::CallbackScope cbscope;
-#endif
     };
     Scope scope() {
-        return Scope(env, actx);
+        return Scope(env, std::move(actx));
     }
     void callback(const std::initializer_list<napi_value>& args) {
         cbref.MakeCallback(env.Global(), args, actx);
@@ -58,7 +56,7 @@ struct CallbackInfo {
     }
     Napi::Env const env;
     Napi::FunctionReference cbref;
-    Napi::AsyncContext const actx;
+    Napi::AsyncContext actx;
 };
 
 static Napi::Value listDevices(Napi::CallbackInfo const & info) {
