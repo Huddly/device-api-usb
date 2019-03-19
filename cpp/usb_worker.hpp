@@ -8,8 +8,8 @@
 #include <cstdint>
 
 struct Usb_cookie {
-    Usb_cookie() : cookie(0) {}
-    Usb_cookie(uint32_t cookie) : cookie(cookie) {assert(cookie != 0);}
+    explicit constexpr Usb_cookie() : cookie(0) {}
+    explicit constexpr Usb_cookie(uint32_t cookie) : cookie(cookie) {assert(cookie != 0);}
     operator bool() const { return cookie != 0; }
     uint32_t const cookie;
 };

@@ -177,7 +177,7 @@ struct Context {
                 devices.insert(std::make_pair(cookie.cookie, idev));
             }
             else {
-                ret_devices.emplace_back(found, descr.idVendor, descr.idProduct, serial, location);
+                ret_devices.emplace_back(Usb_cookie(found), descr.idVendor, descr.idProduct, serial, location);
                 Device idev{dev, serial};
                 devices.insert(std::make_pair(found, idev));
             }

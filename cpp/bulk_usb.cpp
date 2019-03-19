@@ -104,7 +104,12 @@ static Napi::Value openDevice(Napi::CallbackInfo const & info) {
         Napi::TypeError::New(env, "Expected 2 arguments: cookie and callback").ThrowAsJavaScriptException();
         return env.Undefined();
     }
-    uint32_t const cookie = info[0].As<Napi::Number>();
+    uint32_t const cookie_num = info[0].As<Napi::Number>();
+    if (cookie_num == 0) {
+        Napi::TypeError::New(env, "Cookie can not be 0").ThrowAsJavaScriptException();
+        return env.Undefined();
+    }
+    Usb_cookie const cookie(cookie_num);
     auto js_cb = info[1].As<Napi::Function>();
     auto cbinfo = std::make_shared<CallbackInfo>(env, js_cb);
     worker_arg->open_device(cookie, [env, cbinfo=std::move(cbinfo)](int error, Usb_cookie handle){
@@ -127,7 +132,12 @@ static Napi::Value writeDevice(Napi::CallbackInfo const & info) {
         Napi::TypeError::New(env, "Expected 4 arguments: cookie, data, timeout_ms, and callback").ThrowAsJavaScriptException();
         return env.Undefined();
     }
-    uint32_t const cookie = info[0].As<Napi::Number>();
+    uint32_t const cookie_num = info[0].As<Napi::Number>();
+    if (cookie_num == 0) {
+        Napi::TypeError::New(env, "Cookie can not be 0").ThrowAsJavaScriptException();
+        return env.Undefined();
+    }
+    Usb_cookie const cookie(cookie_num);
     auto js_buffer = info[1].As<Napi::Uint8Array>();
     std::vector<uint8_t> const buffer(js_buffer.Data(), js_buffer.Data() + js_buffer.ByteLength());
     unsigned const timeout_ms = info[2].As<Napi::Number>();
@@ -155,7 +165,12 @@ static Napi::Value readDevice(Napi::CallbackInfo const & info) {
         Napi::TypeError::New(env, "Expected 4 arguments: cookie, bufsize, timeout_ms, and callback").ThrowAsJavaScriptException();
         return env.Undefined();
     }
-    uint32_t const cookie = info[0].As<Napi::Number>();
+    uint32_t const cookie_num = info[0].As<Napi::Number>();
+    if (cookie_num == 0) {
+        Napi::TypeError::New(env, "Cookie can not be 0").ThrowAsJavaScriptException();
+        return env.Undefined();
+    }
+    Usb_cookie const cookie(cookie_num);
     unsigned const bufsize = info[1].As<Napi::Number>();
     unsigned const timeout_ms = info[2].As<Napi::Number>();
     auto js_cb = info[3].As<Napi::Function>();
@@ -184,7 +199,12 @@ static Napi::Value closeDevice(Napi::CallbackInfo const & info) {
         Napi::TypeError::New(env, "Expected 2 arguments: cookie, and callback").ThrowAsJavaScriptException();
         return env.Undefined();
     }
-    uint32_t const cookie = info[0].As<Napi::Number>();
+    uint32_t const cookie_num = info[0].As<Napi::Number>();
+    if (cookie_num == 0) {
+        Napi::TypeError::New(env, "Cookie can not be 0").ThrowAsJavaScriptException();
+        return env.Undefined();
+    }
+    Usb_cookie const cookie(cookie_num);
     auto js_cb = info[1].As<Napi::Function>();
     auto cbinfo = std::make_shared<CallbackInfo>(env, js_cb);
     //std::cout << "closeDevice cookie " << cookie << std::endl;
