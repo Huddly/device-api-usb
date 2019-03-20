@@ -1,4 +1,4 @@
-import BulkUsb from './bulkusbdevice';
+import BulkUsb, { BulkUsbDevice } from './bulkusbdevice';
 import EventEmitter from 'events';
 import IDeviceDiscovery from '@huddly/sdk/lib/src/interfaces/iDeviceDiscovery';
 import Logger from './logger';
@@ -67,23 +67,26 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
     this.eventEmitter.emit('DETACH', removedDevice.serialNumber);
   }
 
-  async deviceList(): Promise<any> {
+  async deviceList(): Promise<{devices: BulkUsbDevice[]}> {
     // Fixme: Do dummy attach to init polling
     BulkUsb.onAttach(async () => {});
-    const devices = await BulkUsb.listDevices();
+    const allDevices = await BulkUsb.listDevices();
+    const devices = allDevices.filter(dev => dev.vid === 0x2bd9);
     return { devices };
   }
 
-  async getDevice(serialNumber: any): Promise<any> {
+  async getDevice(serialNumber: string | undefined): Promise<BulkUsbDevice|undefined> {
     const { devices } = await this.deviceList();
 
-    let myDevice = undefined;
     if (serialNumber) {
-      myDevice = devices.find(d => d.serialNumber.indexOf(serialNumber) >= 0);
+      return devices.find(d => d.serialNumber.indexOf(serialNumber) >= 0);
     } else if (devices.length > 0) {
-      myDevice = devices[0];
+      if (devices.length !== 1) {
+        this.logger.warn(`Randomly choosing between ${devices.length} Huddly devices (${devices[0].serialNumber})`);
+      }
+      return devices[0];
     }
-
-    return myDevice;
+    this.logger.warn(`Could not find device with serial ${serialNumber} amongst ${devices.length} devices`);
+    return undefined;
   }
 }
