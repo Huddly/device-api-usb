@@ -60,8 +60,7 @@ class BulkUsbSingleton {
   private _previousDevices: ReadonlyArray<BulkUsbDevice>;
   private _onAttaches: Array<(dev: BulkUsbDevice) => Promise<void>>;
   private _isPolling: boolean;
-  private _firstListResolve: Array<(dev: ReadonlyArray<BulkUsbDevice>) => void>;
-  private _firstListDone: boolean;
+  private _pollingListResolve: Array<(dev: ReadonlyArray<BulkUsbDevice>) => void>;
 
   private constructor(cpp: any) {
       this._cpp = cpp;
@@ -69,8 +68,7 @@ class BulkUsbSingleton {
       this._previousDevices = Object.freeze([]);
       this._onAttaches = [];
       this._isPolling = false;
-      this._firstListResolve = [];
-      this._firstListDone = false;
+      this._pollingListResolve = [];
   }
   public static get Instance() {
       return this._instance || (this._instance = new this(binding));
@@ -117,12 +115,13 @@ class BulkUsbSingleton {
     this._isPolling = true;
     console.log('Starting BulkUsb poll loop');
     for (;;) {
+      // Guarantee that the actual _listDevices call is done after the listDevices call.
+      // Not before (cached), and not while listing, but after.
+      const toResolve = this._pollingListResolve;
+      this._pollingListResolve = [];
       try {
         const devices = await this._listDevices();
-        this._firstListDone = true;
-        const promise = Promise.all(this._firstListResolve.map(cb => cb(devices)));
-        this._firstListResolve = [];
-        await promise;
+        toResolve.map(cb => cb(devices));
       } catch (e) {
         console.log('BulkUsb attach poll loop got error:', e);
         await sleep(1000); // Sleep some more to avoid spamming.
@@ -135,17 +134,8 @@ class BulkUsbSingleton {
     if (!this._isPolling) {
       return this._listDevices();
     }
-    if (!this._firstListDone) {
-      return new Promise((resolve) => {
-        this._firstListResolve.push(resolve);
-      });
-    }
     return new Promise((resolve) => {
-      let devices = this._activeDevices;
-      if (devices.length === 0) {
-        devices = this._previousDevices;
-      }
-      return resolve(devices);
+      this._pollingListResolve.push(resolve);
     });
   }
 
@@ -153,7 +143,7 @@ class BulkUsbSingleton {
     if (!this._isPolling) {
       this._pollLoop(); // Just drop the promise, as it will never resolve (infinite pollLoop)
     }
-    const devices = await this.listDevices() as any[];
+    const devices = await this.listDevices();
     this._onAttaches.push(cb);
     await Promise.all(devices.map(cb));
   }
