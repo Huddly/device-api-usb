@@ -1,3 +1,5 @@
+/// <reference types="node" />
+import { BulkUsbDevice } from './bulkusbdevice';
 import EventEmitter from 'events';
 import IDeviceDiscovery from '@huddly/sdk/lib/src/interfaces/iDeviceDiscovery';
 export default class DeviceDiscoveryManager implements IDeviceDiscovery {
@@ -13,6 +15,8 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
     discoverCameras(): void;
     private deviceAttached;
     private deviceDetached;
-    deviceList(): Promise<any>;
-    getDevice(serialNumber: any): Promise<any>;
+    deviceList(): Promise<{
+        devices: BulkUsbDevice[];
+    }>;
+    getDevice(serialNumber: string | undefined): Promise<BulkUsbDevice | undefined>;
 }

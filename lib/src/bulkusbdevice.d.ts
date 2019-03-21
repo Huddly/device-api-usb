@@ -22,8 +22,7 @@ declare class BulkUsbSingleton {
     private _previousDevices;
     private _onAttaches;
     private _isPolling;
-    private _firstListResolve;
-    private _firstListDone;
+    private _pollingListResolve;
     private constructor();
     static readonly Instance: BulkUsbSingleton;
     private _listDevices;
