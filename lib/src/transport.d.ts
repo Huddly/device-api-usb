@@ -49,7 +49,6 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     */
     device: any;
     setEventLoopReadSpeed(timeout?: number): void;
-    sleep(seconds?: number): Promise<any>;
     init(): Promise<any>;
     initEventLoop(): void;
     startbulkReadWrite(): Promise<void>;

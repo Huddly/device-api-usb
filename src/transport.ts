@@ -1,3 +1,4 @@
+import awaitSleep from 'await-sleep';
 import ITransport from '@huddly/sdk/lib/src/interfaces/iTransport';
 import DeviceEndpoint from './bulkusbendpoint';
 import MessagePacket from './messagepacket';
@@ -82,17 +83,10 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     // this.eventLoopSpeed = timeout;
   }
 
-  async sleep(seconds: number = 1): Promise<any> {
-    return new Promise((resolve) => {
-      const timer = setTimeout(() => {
-        clearTimeout(timer);
-        resolve();
-      }, (seconds * 1000));
-    });
-  }
-
   async init(): Promise<any> {
     if (!this.device.endpoint) {
+      // Wait for UVC device to settle before claiming
+      await awaitSleep(100);
       try {
         const endpoint = await this.device.open();
         this.endpoint = endpoint;
