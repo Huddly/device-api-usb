@@ -9,6 +9,12 @@ struct EndpointAndClaim {
 };
 
 static inline std::variant<EndpointAndClaim, HLink_error> get_huddly_endpoint_and_claim(Libusb::Device dev) {
+    auto const maybe_devh = dev.open();
+    if (std::holds_alternative<Libusb_error>(maybe_devh)) {
+        return HLink_error(std::get<Libusb_error>(maybe_devh));
+    }
+	auto devh = std::get<Libusb::Device::Open>(maybe_devh);
+
     // Find vsc interface.
     auto maybe_config = dev.get_active_config_descriptor();
     if (std::holds_alternative<Libusb_error>(maybe_config)) {
@@ -35,9 +41,13 @@ static inline std::variant<EndpointAndClaim, HLink_error> get_huddly_endpoint_an
         return HLink_error(HLink_error::Errors::endpoint_error, "Incorrect number of endpoints. At least two expected.");
     }
 
+    auto maybe_claim = devh.claim_interface(ifc->bInterfaceNumber);
+    if (std::holds_alternative<Libusb_error>(maybe_claim)) {
+        return HLink_error(std::get<Libusb_error>(maybe_claim));
+    }
+
     uint8_t vsc_ep_out_num = 0;
     uint8_t vsc_ep_in_num = 0;
-
     for (auto i = 0u; i < ifc->bNumEndpoints; i++) {
         uint8_t const ep_num = ifc->endpoint[i].bEndpointAddress;
         if (ep_num & 0x80) {
@@ -60,17 +70,6 @@ static inline std::variant<EndpointAndClaim, HLink_error> get_huddly_endpoint_an
             << " ep out: " << std::hex << static_cast<int>(vsc_ep_out_num)
             << " ep in: " << static_cast<int>(vsc_ep_in_num)
             << std::dec << std::endl;*/
-
-    auto const maybe_devh = dev.open();
-    if (std::holds_alternative<Libusb_error>(maybe_devh)) {
-        return HLink_error(std::get<Libusb_error>(maybe_devh));
-    }
-	auto devh = std::get<Libusb::Device::Open>(maybe_devh);
-
-    auto maybe_claim = devh.claim_interface(ifc->bInterfaceNumber);
-    if (std::holds_alternative<Libusb_error>(maybe_claim)) {
-        return HLink_error(std::get<Libusb_error>(maybe_claim));
-    }
 
     return EndpointAndClaim {
         devh.get_endpoint(vsc_ep_out_num, vsc_ep_in_num),
