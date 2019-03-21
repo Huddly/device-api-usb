@@ -35,7 +35,7 @@ struct Usb_worker_arg {
     QueuePtr const from_worker;
 
     // These functions must always be called in the context of the main node thread/loop:
-    void process(); // Call to process any pending events (make callbacks run in main context)
+    int process(); // Call to process any pending events (make callbacks run in main context)
     void list_devices(std::function<void(int, std::vector<Usb_device>)>);
     void open_device(Usb_cookie cookie, std::function<void(int, Usb_cookie)>);
     void write_device(Usb_cookie cookie, std::vector<uint8_t> const data, unsigned timeout_ms, std::function<void(int, int)>);

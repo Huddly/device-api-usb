@@ -351,13 +351,15 @@ public:
     std::unique_ptr<EndpointAndClaim> ep_claim;
 };
 
-void Usb_worker_arg::process() {
+int Usb_worker_arg::process() {
+    int count = 0;
     for(;;) {
         auto item = from_worker->pop_nowait();
         if (!item) {
             //std::cout << "\t process() done" << std::endl;
-            return;
+            return count;
         }
+        count += 1;
         auto &ret = ReturnItem::upcast(item);
         //std::cout << "\t process() processing return: " << ret.get_name() << std::endl;
         ret.cb();

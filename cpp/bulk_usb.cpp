@@ -10,8 +10,46 @@
 #include <iostream>
 
 static uv_thread_t worker;
-static uv_async_t async;
 static std::unique_ptr<Usb_worker_arg> worker_arg;
+
+struct AsyncWrapper {
+    AsyncWrapper() : refs(0), async(nullptr) {}
+    void ref() {
+        if (refs == 0) {
+            async = new uv_async_t;
+            uv_async_init(uv_default_loop(), async, process_cb);
+            async->data = this;
+        }
+        refs += 1;
+    }
+    void send() {
+        uv_async_send(async);
+    }
+private:
+    static void process_cb(uv_async_t *async) {
+        auto &self = *reinterpret_cast<AsyncWrapper *>(async->data);
+        self.process_cb();
+    }
+    void process_cb() {
+        // This function is always called in the context of the main node thread/loop
+        if (!worker_arg) {
+            return;
+        }
+        refs -= worker_arg->process();
+        assert(refs >= 0);
+        if (refs == 0 && async != nullptr) {
+            uv_close(reinterpret_cast<uv_handle_t *>(async), [](uv_handle_t *handle) {
+                auto async = reinterpret_cast<uv_async_t *>(handle);
+                delete async;
+            });
+            async = nullptr;
+        }
+    }
+    int refs;
+    uv_async_t *async;
+};
+
+static AsyncWrapper async;
 
 struct CallbackInfo {
     explicit CallbackInfo(Napi::Env const env, Napi::Function const &cb)
@@ -68,6 +106,7 @@ static Napi::Value listDevices(Napi::CallbackInfo const & info) {
     auto js_cb = info[0].As<Napi::Function>();
     auto cbinfo = std::make_shared<CallbackInfo>(env, js_cb);
 
+    async.ref();
     worker_arg->list_devices([env, cbinfo=std::move(cbinfo)](int error, std::vector<Usb_device> devices){
         // std::cout << "in listDevice" << std::endl;
         auto scope = cbinfo->scope();
@@ -110,6 +149,7 @@ static Napi::Value openDevice(Napi::CallbackInfo const & info) {
     Usb_cookie const cookie(cookie_num);
     auto js_cb = info[1].As<Napi::Function>();
     auto cbinfo = std::make_shared<CallbackInfo>(env, js_cb);
+    async.ref();
     worker_arg->open_device(cookie, [env, cbinfo=std::move(cbinfo)](int error, Usb_cookie handle){
         std::cout << "in openDevice" << std::endl;
         auto scope = cbinfo->scope();
@@ -142,7 +182,7 @@ static Napi::Value writeDevice(Napi::CallbackInfo const & info) {
     auto js_cb = info[3].As<Napi::Function>();
     auto cbinfo = std::make_shared<CallbackInfo>(env, js_cb);
     //std::cout << "writeDevice cookie " << cookie << std::endl;
-
+    async.ref();
     worker_arg->write_device(cookie, buffer, timeout_ms, [env, cbinfo=std::move(cbinfo)](int error, int transferred){
         //std::cout << "in writeDevice" << std::endl;
         auto scope = cbinfo->scope();
@@ -174,7 +214,7 @@ static Napi::Value readDevice(Napi::CallbackInfo const & info) {
     auto js_cb = info[3].As<Napi::Function>();
     auto cbinfo = std::make_shared<CallbackInfo>(env, js_cb);
     //std::cout << "readDevice cookie " << cookie << std::endl;
-
+    async.ref();
     worker_arg->read_device(cookie, bufsize, timeout_ms, [env, cbinfo=std::move(cbinfo)](int error, std::vector<uint8_t> buf){
         //std::cout << "in readDevice" << std::endl;
         auto scope = cbinfo->scope();
@@ -206,7 +246,7 @@ static Napi::Value closeDevice(Napi::CallbackInfo const & info) {
     auto js_cb = info[1].As<Napi::Function>();
     auto cbinfo = std::make_shared<CallbackInfo>(env, js_cb);
     //std::cout << "closeDevice cookie " << cookie << std::endl;
-
+    async.ref();
     worker_arg->close_device(cookie, [env, cbinfo=std::move(cbinfo)](int error) {
         std::cout << "in closeDevice" << std::endl;
         auto scope = cbinfo->scope();
@@ -215,20 +255,11 @@ static Napi::Value closeDevice(Napi::CallbackInfo const & info) {
     return env.Undefined();
 }
 
-static void process_cb(uv_async_t *) {
-    // This function is always called in the context of the main node thread/loop
-    if (!worker_arg) {
-        return;
-    }
-    worker_arg->process();
-}
-
 Napi::Object InitAll(Napi::Env env, Napi::Object exports) {
     // Start our worker thread
     assert(!worker_arg);
-    uv_async_init(uv_default_loop(), &async, process_cb);
     auto to_worker = make_uv_queue();
-    auto from_worker = make_uv_queue([](){ uv_async_send(&async); });
+    auto from_worker = make_uv_queue([](){ async.send(); });
     worker_arg = std::make_unique<Usb_worker_arg>(std::move(to_worker), std::move(from_worker));
     uv_thread_create(&worker, usb_worker_entry, worker_arg->as_vptr());
     exports.Set("listDevices", Napi::Function::New(env, listDevices));
