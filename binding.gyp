@@ -25,7 +25,8 @@
     "sources": [
         "cpp/bulk_usb.cpp",
         "cpp/queue_uv.cpp",
-        "cpp/usb_worker.cpp"
+        "cpp/usb_worker.cpp",
+        "cpp/Libusb.cpp",
     ],
       "cflags_cc": [ "-fno-exceptions", "-std=c++17", "-g3", "-Wsuggest-override", "-Weffc++" ],
       'defines': [

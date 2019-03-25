@@ -4,23 +4,23 @@
 #include "HLink.hpp"
 
 struct EndpointAndClaim {
-    Libusb::Device::Open::Endpoint ep;
-    Libusb::Device::Open::Claimed_interface claim;
+    libusb::Endpoint ep;
+    libusb::Claimed_interface claim;
 };
 
-static inline std::variant<EndpointAndClaim, HLink_error> get_huddly_endpoint_and_claim(Libusb::Device dev) {
+static inline std::variant<EndpointAndClaim, HLink_error> get_huddly_endpoint_and_claim(libusb::Device dev) {
     auto const maybe_devh = dev.open();
-    if (std::holds_alternative<Libusb_error>(maybe_devh)) {
-        return HLink_error(std::get<Libusb_error>(maybe_devh));
+    if (std::holds_alternative<libusb::Error>(maybe_devh)) {
+        return HLink_error(std::get<libusb::Error>(maybe_devh));
     }
-	auto devh = std::get<Libusb::Device::Open>(maybe_devh);
+	auto devh = std::get<libusb::Open_device>(maybe_devh);
 
     // Find vsc interface.
     auto maybe_config = dev.get_active_config_descriptor();
-    if (std::holds_alternative<Libusb_error>(maybe_config)) {
-        return HLink_error(std::get<Libusb_error>(maybe_config));
+    if (std::holds_alternative<libusb::Error>(maybe_config)) {
+        return HLink_error(std::get<libusb::Error>(maybe_config));
     }
-    auto const config = std::get<Libusb::Config_descriptor>(std::move(maybe_config));
+    auto const config = std::get<libusb::Config_descriptor>(std::move(maybe_config));
 
     size_t const num_ifcs = config.desc->bNumInterfaces;
     //std::cout << "Number of interfaces: " << num_ifcs << std::endl;
@@ -42,8 +42,8 @@ static inline std::variant<EndpointAndClaim, HLink_error> get_huddly_endpoint_an
     }
 
     auto maybe_claim = devh.claim_interface(ifc->bInterfaceNumber);
-    if (std::holds_alternative<Libusb_error>(maybe_claim)) {
-        return HLink_error(std::get<Libusb_error>(maybe_claim));
+    if (std::holds_alternative<libusb::Error>(maybe_claim)) {
+        return HLink_error(std::get<libusb::Error>(maybe_claim));
     }
 
     uint8_t vsc_ep_out_num = 0;
@@ -73,6 +73,6 @@ static inline std::variant<EndpointAndClaim, HLink_error> get_huddly_endpoint_an
 
     return EndpointAndClaim {
         devh.get_endpoint(vsc_ep_out_num, vsc_ep_in_num),
-        std::get<Libusb::Device::Open::Claimed_interface>(std::move(maybe_claim)),
+        std::get<libusb::Claimed_interface>(std::move(maybe_claim)),
     };
 }

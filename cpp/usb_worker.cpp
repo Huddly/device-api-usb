@@ -80,10 +80,10 @@ struct ReturnItem : public QueueItem {
     std::function<void(void)> const cb;
 };
 
-static std::string maybe_get_string(Libusb::Device & dev, uint8_t string, int retry=3) {
+static std::string maybe_get_string(libusb::Device & dev, uint8_t string, int retry=3) {
     auto maybe_devh = dev.open(true);
-    if (std::holds_alternative<Libusb_error>(maybe_devh)) {
-        auto err = std::get<Libusb_error>(maybe_devh);
+    if (std::holds_alternative<libusb::Error>(maybe_devh)) {
+        auto err = std::get<libusb::Error>(maybe_devh);
         switch (err.number) {
         case LIBUSB_ERROR_ACCESS:
         case LIBUSB_ERROR_NOT_SUPPORTED:
@@ -101,17 +101,17 @@ static std::string maybe_get_string(Libusb::Device & dev, uint8_t string, int re
         }
         return err.get_message();
     }
-    auto devh = std::get<Libusb::Device::Open>(std::move(maybe_devh));
+    auto devh = std::get<libusb::Open_device>(std::move(maybe_devh));
     auto maybe_string = devh.get_string_descriptor(string);
-    if (std::holds_alternative<Libusb_error>(maybe_string)) {
-        auto err = std::get<Libusb_error>(maybe_string);
+    if (std::holds_alternative<libusb::Error>(maybe_string)) {
+        auto err = std::get<libusb::Error>(maybe_string);
         //std::cerr << "Error getting string descriptor: " << err.get_message() << std::endl;
         return err.get_message();
     }
     return std::get<std::string>(std::move(maybe_string));
 }
 
-static std::variant<EndpointAndClaim, HLink_error> retry_open(Libusb::Device dev) {
+static std::variant<EndpointAndClaim, HLink_error> retry_open(libusb::Device dev) {
     for (auto i = 0u; i < 2; i++) {
         auto maybe = get_huddly_endpoint_and_claim(dev);
         if (std::holds_alternative<EndpointAndClaim>(maybe)) {
@@ -134,7 +134,7 @@ struct Context {
     {}
 
     struct Device {
-        Libusb::Device dev;
+        libusb::Device dev;
         std::string const serial;
     };
 
@@ -144,7 +144,7 @@ struct Context {
         assert(devices.empty());
 
         auto maybe_list = ctx.get_device_list();
-        if (auto err = std::get_if<Libusb_error>(&maybe_list)) {
+        if (auto err = std::get_if<libusb::Error>(&maybe_list)) {
             return std::make_unique<ReturnItem>(
                 "list_devices fail",
                 [num=err->number, sptr=std::move(sptr), command]() {
@@ -228,11 +228,11 @@ struct Context {
             });
     }
 private:
-    Libusb_error handle_clear_halt_result(Libusb_error original, std::variant<std::monostate, Libusb_error> result) {
+    libusb::Error handle_clear_halt_result(libusb::Error original, std::variant<std::monostate, libusb::Error> result) {
         if (std::holds_alternative<std::monostate>(result)) {
             return original;
         }
-        auto err = std::get<Libusb_error>(std::move(result));
+        auto err = std::get<libusb::Error>(std::move(result));
         std::cerr << "clear_halt gave error " << err.get_message() << std::endl;
         if (err.number == LIBUSB_ERROR_NO_DEVICE) {
             open_cookie = 0;
@@ -254,8 +254,8 @@ public:
         }
         assert(ep_claim);
         auto maybe = ep_claim->ep.out(command->data.data(), command->data.size(), command->timeout_ms);
-        if (std::holds_alternative<Libusb_error>(maybe)) {
-            auto err = std::get<Libusb_error>(maybe);
+        if (std::holds_alternative<libusb::Error>(maybe)) {
+            auto err = std::get<libusb::Error>(maybe);
             switch (err.number) {
             case LIBUSB_ERROR_NO_DEVICE:
                 open_cookie = 0;
@@ -291,8 +291,8 @@ public:
         assert(ep_claim);
         std::vector<uint8_t> buffer(command->max_size);
         auto maybe = ep_claim->ep.in(buffer.data(), buffer.size(), command->timeout_ms);
-        if (std::holds_alternative<Libusb_error>(maybe)) {
-            auto err = std::get<Libusb_error>(maybe);
+        if (std::holds_alternative<libusb::Error>(maybe)) {
+            auto err = std::get<libusb::Error>(maybe);
             switch (err.number) {
             case LIBUSB_ERROR_NO_DEVICE:
                 open_cookie = 0;
@@ -369,7 +369,7 @@ int Usb_worker_arg::process() {
 void usb_worker_entry(void *argp) {
     auto & arg = Usb_worker_arg::from_vptr(argp);
     auto maybe_ctx = Libusb::init();
-    if (std::holds_alternative<Libusb_error>(maybe_ctx)) {
+    if (std::holds_alternative<libusb::Error>(maybe_ctx)) {
         return; // TODO: report error back to master thread
     }
     auto usbctx = std::get<Libusb>(std::move(maybe_ctx));
