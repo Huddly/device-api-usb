@@ -79,20 +79,19 @@
     "node-addon-api": "^1.6.2"
   },
   "devDependencies": {
-    "node-gyp-build": "^3.8.0",
     "@types/mocha": "^5.2.5",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
     "chai-things": "^0.2.0",
     "mocha": "^6.0.0",
+    "node-gyp": "^3.8.0",
+    "node-gyp-build": "^3.8.0",
     "nyc": "^13.1.0",
+    "prebuildify": "^2.11.0",
     "sinon": "^7.0.0",
     "sinon-chai": "^3.2.0",
     "source-map-support": "^0.5.9",
     "ts-node": "^7.0.1",
-    "tslint": "^5.11.0",
-    "node-gyp": "^3.8.0",
-    "npm-run": "^4.1.0",
-    "prebuildify": "^2.11.0"
+    "tslint": "^5.11.0"
   }
 }
