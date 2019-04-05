@@ -129,8 +129,7 @@ struct Context {
         : ctx(std::move(ctx))
         , cookie_counter(10000)
         , devices()
-        , open_cookie(0)
-        , ep_claim(nullptr)
+        , ep_claims()
     {}
 
     struct Device {
@@ -192,8 +191,8 @@ struct Context {
             });
     }
     QueueItemPtr handle(QueueItemPtr itemptr, OpenDevice const *command) {
-        //std::cout << "handling OpenDevice" << std::endl;
-        ep_claim.reset();
+        std::cout << "handling OpenDevice cookie " << command->cookie.cookie << std::endl;
+
         auto sptr = std::shared_ptr<QueueItem>(std::move(itemptr));
         auto maybe_device = devices.find(command->cookie.cookie);
         if (maybe_device == devices.end()) {
@@ -213,12 +212,10 @@ struct Context {
                 });
         }
 
-        ep_claim = std::make_unique<EndpointAndClaim>(
-            std::move(
-                std::get<EndpointAndClaim>(
-                    std::move(maybe_endpoint_and_claim))));
         auto cookie = get_cookie();
-        open_cookie = cookie.cookie;
+        std::cout << "C " << command->cookie.cookie << " opened as C " << cookie.cookie << std::endl;
+        ep_claims.insert({cookie.cookie, std::get<EndpointAndClaim>(std::move(maybe_endpoint_and_claim))});
+
         return std::make_unique<ReturnItem>(
             "open_device success",
             [sptr=std::move(sptr), cookie]() {
@@ -228,41 +225,44 @@ struct Context {
             });
     }
 private:
-    libusb::Error handle_clear_halt_result(libusb::Error original, std::variant<std::monostate, libusb::Error> result) {
+    libusb::Error handle_clear_halt_result(
+        std::unordered_map<uint32_t, EndpointAndClaim>::iterator maybe_ep_claim,
+        libusb::Error original,
+        std::variant<std::monostate, libusb::Error> result)
+    {
         if (std::holds_alternative<std::monostate>(result)) {
             return original;
         }
         auto err = std::get<libusb::Error>(std::move(result));
         std::cerr << "clear_halt gave error " << err.get_message() << std::endl;
         if (err.number == LIBUSB_ERROR_NO_DEVICE) {
-            open_cookie = 0;
-            ep_claim.reset();
+            ep_claims.erase(maybe_ep_claim);
             return err;
         }
         return original;
     }
 public:
     QueueItemPtr handle(QueueItemPtr itemptr, WriteDevice const *command) {
-        //std::cout << "handling WriteDevice" << std::endl;
+        //std::cout << "handling WriteDevice C " << command->cookie.cookie << std::endl;
         auto sptr = std::shared_ptr<QueueItem>(std::move(itemptr));
-        if (command->cookie.cookie != open_cookie) {
+        auto maybe_ep_claim = ep_claims.find(command->cookie.cookie);
+        if (maybe_ep_claim == ep_claims.end()) {
             return std::make_unique<ReturnItem>(
                 "write_device unknown cookie",
                 [sptr=std::move(sptr), command]() {
                     command->cb(-100, 0);
                 });
         }
-        assert(ep_claim);
-        auto maybe = ep_claim->ep.out(command->data.data(), command->data.size(), command->timeout_ms);
+        auto &ep_claim = maybe_ep_claim->second;
+        auto maybe = ep_claim.ep.out(command->data.data(), command->data.size(), command->timeout_ms);
         if (std::holds_alternative<libusb::Error>(maybe)) {
             auto err = std::get<libusb::Error>(maybe);
             switch (err.number) {
             case LIBUSB_ERROR_NO_DEVICE:
-                open_cookie = 0;
-                ep_claim.reset();
+                ep_claims.erase(maybe_ep_claim);
                 break;
             case LIBUSB_ERROR_PIPE:
-                handle_clear_halt_result(err, ep_claim->ep.out_clear_halt());
+                handle_clear_halt_result(maybe_ep_claim, err, ep_claim.ep.out_clear_halt());
                 break;
             }
             return std::make_unique<ReturnItem>(
@@ -279,27 +279,28 @@ public:
             });
     }
     QueueItemPtr handle(QueueItemPtr itemptr, ReadDevice const *command) {
-        //std::cout << "handling ReadDevice" << std::endl;
+        //std::cout << "handling ReadDevice C " << command->cookie.cookie << std::endl;
         auto sptr = std::shared_ptr<QueueItem>(std::move(itemptr));
-        if (command->cookie.cookie != open_cookie) {
+
+        auto maybe_ep_claim = ep_claims.find(command->cookie.cookie);
+        if (maybe_ep_claim == ep_claims.end()) {
             return std::make_unique<ReturnItem>(
                 "read_device unknown cookie",
                 [sptr=std::move(sptr), command]() {
                     command->cb(-100, {});
                 });
         }
-        assert(ep_claim);
+        auto &ep_claim = maybe_ep_claim->second;
         std::vector<uint8_t> buffer(command->max_size);
-        auto maybe = ep_claim->ep.in(buffer.data(), buffer.size(), command->timeout_ms);
+        auto maybe = ep_claim.ep.in(buffer.data(), buffer.size(), command->timeout_ms);
         if (std::holds_alternative<libusb::Error>(maybe)) {
             auto err = std::get<libusb::Error>(maybe);
             switch (err.number) {
             case LIBUSB_ERROR_NO_DEVICE:
-                open_cookie = 0;
-                ep_claim.reset();
+                ep_claims.erase(maybe_ep_claim);
                 break;
             case LIBUSB_ERROR_PIPE:
-                handle_clear_halt_result(err, ep_claim->ep.in_clear_halt());
+                handle_clear_halt_result(maybe_ep_claim, err, ep_claim.ep.in_clear_halt());
                 break;
             }
             return std::make_unique<ReturnItem>(
@@ -319,15 +320,15 @@ public:
     QueueItemPtr handle(QueueItemPtr itemptr, CloseDevice const *command) {
         //std::cout << "handling CloseDevice" << std::endl;
         auto sptr = std::shared_ptr<QueueItem>(std::move(itemptr));
-        if (command->cookie.cookie != open_cookie) {
+        auto maybe_ep_claim = ep_claims.find(command->cookie.cookie);
+        if (maybe_ep_claim == ep_claims.end()) {
             return std::make_unique<ReturnItem>(
                 "close_device unknown cookie",
                 [sptr=std::move(sptr), command]() {
                     command->cb(-100);
                 });
         }
-        ep_claim.reset();
-        open_cookie = 0;
+        ep_claims.erase(maybe_ep_claim);
         return std::make_unique<ReturnItem>(
             "close_device success",
             [sptr=std::move(sptr), command]() {
@@ -347,8 +348,7 @@ public:
     uint32_t cookie_counter;
     std::unordered_map<uint32_t, Device> devices;
 
-    uint32_t open_cookie;
-    std::unique_ptr<EndpointAndClaim> ep_claim;
+    std::unordered_map<uint32_t, EndpointAndClaim> ep_claims;
 };
 
 int Usb_worker_arg::process() {
