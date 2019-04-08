@@ -31,6 +31,10 @@ export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
   }
 
   async getValidatedTransport(device): Promise<ITransport> {
+    if (device.productId === 0x11) {
+      this.logger.warn(`HLink is not supported for Huddly GO devices`);
+      return undefined;
+    }
     try {
       const transport = await this.getTransport(device);
       await transport.performHlinkHandshake();
