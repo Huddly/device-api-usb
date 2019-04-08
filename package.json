@@ -76,7 +76,7 @@
     "url": "https://github.com/Huddly/device-api-usb/issues"
   },
   "dependencies": {
-    "@huddly/sdk": "^0.2.1",
+    "@huddly/sdk": "git+ssh://git@github.com:Huddly/sdk.git#users/jontore/typescript-dev",
     "@types/node": "^11.13.0",
     "await-sleep": "0.0.1",
     "node-addon-api": "^1.6.2",
