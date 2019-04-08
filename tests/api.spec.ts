@@ -13,11 +13,18 @@ chai.use(sinonChai);
 const mockedDevices = [
   {
     productName: 'Huddly IQ',
-    serialNumber: '123456'
+    serialNumber: '123456',
+    productId: 0x21
   },
   {
     productName: 'Huddly IQ',
-    serialNumber: '56789'
+    serialNumber: '56789',
+    productId: 0x21
+  },
+  {
+    productName: 'Huddly GO',
+    serialNumber: '534654324',
+    productId: 0x11
   },
 ];
 
@@ -62,26 +69,36 @@ describe('HuddlyDeviceApiUSB', () => {
   });
 
   describe('#getValidatedTransport', () => {
-    let trasnportstub;
-    let getTransportStub;
-    beforeEach(() => {
-      trasnportstub = sinon.createStubInstance(NodeUsbTransport);
-    });
-    afterEach(() => {
-      getTransportStub.restore();
-    });
-    it('should support device when hlink handshake succeeds', async () => {
-      trasnportstub.performHlinkHandshake.returns(Promise.resolve());
-      getTransportStub = sinon.stub(deviceApi, 'getTransport').returns(trasnportstub);
-      const supported = await deviceApi.getValidatedTransport(mockedDevices[0]);
-      expect(supported).to.be.instanceof(NodeUsbTransport);
+    describe('for huddly go', () => {
+      it('should not support huddly go devices', async () => {
+        const transport = await deviceApi.getValidatedTransport(mockedDevices[2]);
+        expect(transport).to.be.undefined;
+      });
     });
 
-    it('should not support device when hlink handshake fails', async () => {
-      trasnportstub.performHlinkHandshake.returns(Promise.reject());
-      getTransportStub = sinon.stub(deviceApi, 'getTransport').returns(trasnportstub);
-      const supported = await deviceApi.getValidatedTransport(mockedDevices[0]);
-      expect(supported).to.equal(undefined);
+    describe('for boxfish', () => {
+      let trasnportstub;
+      let getTransportStub;
+      beforeEach(() => {
+        trasnportstub = sinon.createStubInstance(NodeUsbTransport);
+      });
+      afterEach(() => {
+        getTransportStub.restore();
+      });
+
+      it('should support device when hlink handshake succeeds', async () => {
+        trasnportstub.performHlinkHandshake.returns(Promise.resolve());
+        getTransportStub = sinon.stub(deviceApi, 'getTransport').returns(trasnportstub);
+        const supported = await deviceApi.getValidatedTransport(mockedDevices[0]);
+        expect(supported).to.be.instanceof(NodeUsbTransport);
+      });
+
+      it('should not support device when hlink handshake fails', async () => {
+        trasnportstub.performHlinkHandshake.returns(Promise.reject());
+        getTransportStub = sinon.stub(deviceApi, 'getTransport').returns(trasnportstub);
+        const supported = await deviceApi.getValidatedTransport(mockedDevices[0]);
+        expect(supported).to.equal(undefined);
+      });
     });
   });
 
