@@ -53,7 +53,7 @@ export class BulkUsbDevice {
   }
 }
 
-class BulkUsbSingleton {
+export class BulkUsbSingleton {
   private static _instance: BulkUsbSingleton;
   private _cpp: any;
   private _activeDevices: ReadonlyArray<BulkUsbDevice>;
@@ -62,7 +62,7 @@ class BulkUsbSingleton {
   private _isPolling: boolean;
   private _pollingListResolve: Array<(dev: ReadonlyArray<BulkUsbDevice>) => void>;
 
-  private constructor(cpp: any) {
+  constructor(cpp: any) {
       this._cpp = cpp;
       this._activeDevices = Object.freeze([]);
       this._previousDevices = Object.freeze([]);
@@ -104,7 +104,6 @@ class BulkUsbSingleton {
           });
 
           this._activeDevices = Object.freeze(ret.slice());
-
           newDevices.forEach(newDevice => this._onAttaches.forEach(cb => cb(newDevice)));
           return resolve(Object.freeze(ret));
         });
