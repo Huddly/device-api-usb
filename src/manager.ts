@@ -28,6 +28,9 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
       case 0x21:
         name = 'Huddly IQ';
         break;
+      case 0x22:
+        name = 'IQ prodtest';
+        break;
       default:
         throw new Error('Unknown device');
     }
