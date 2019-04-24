@@ -91,7 +91,7 @@
     "chai-things": "^0.2.0",
     "copyfiles": "^2.1.0",
     "mocha": "^6.0.0",
-    "node-gyp": "^3.8.0",
+    "node-gyp": "^4.0.0",
     "nyc": "^14.0.0",
     "prebuildify": "^2.11.0",
     "sinon": "^7.3.1",
