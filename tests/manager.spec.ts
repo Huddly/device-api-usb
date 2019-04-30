@@ -70,7 +70,6 @@ describe('HuddlyUsbDeviceManager', () => {
         const attachPromise = new Promise((resolve) => {
           emitter.on('ATTACH', (device) => {
             expect(device.serialNumber).to.equal(mockedDevices[0].serialNumber);
-            expect(device.productName).to.equal('Huddly IQ');
             resolve();
           });
         });
