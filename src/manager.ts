@@ -20,22 +20,9 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
   }
 
   private getDeviceObject(device: any) {
-    let name;
-    switch (device.pid) {
-      case 0x11:
-        name = 'Huddly GO';
-        break;
-      case 0x21:
-        name = 'Huddly IQ';
-        break;
-      default:
-        throw new Error('Unknown device');
-    }
-
     Object.assign(device, {
       id: device._cookie,
-      productId: device.pid,
-      productName: name
+      productId: device.pid
     });
     return device;
   }

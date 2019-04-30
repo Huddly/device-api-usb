@@ -12,17 +12,14 @@ chai.use(sinonChai);
 
 const mockedDevices = [
   {
-    productName: 'Huddly IQ',
     serialNumber: '123456',
     productId: 0x21
   },
   {
-    productName: 'Huddly IQ',
     serialNumber: '56789',
     productId: 0x21
   },
   {
-    productName: 'Huddly GO',
     serialNumber: '534654324',
     productId: 0x11
   },
