@@ -41,13 +41,19 @@ export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
       this.logger.info(':::::::::::: Transport Protocol is HLINK ::::::::::::');
       return transport;
     } catch (e) {
-      this.logger.warn(`HLink is not supported for device: ${device.serialNumber}`);
+      this.logger.warn(`HLink is not supported for device: ${device.serialNumber} ${e}`);
       return undefined;
     }
   }
 
   async getTransport(device): Promise<NodeUsbTransport> {
-    const usbDevice = await this.deviceDiscoveryManager.getDevice(device.serialNumber);
+    let usbDevice;
+
+    const maxDeviceAttempt = 10;
+    for (let i = 0; (i < maxDeviceAttempt && !usbDevice); i++) {
+      usbDevice = await this.deviceDiscoveryManager.getDevice(device.serialNumber);
+    }
+
     const transport = new NodeUsbTransport(usbDevice, this.logger);
     await transport.init();
     return transport;

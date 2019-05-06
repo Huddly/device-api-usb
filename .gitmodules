@@ -1,3 +1,4 @@
 [submodule "libusb"]
 	path = libusb
-	url = https://github.com/libusb/libusb.git
+	url = https://github.com/jontore/libusb.git
+	branch = bugfix/darwin/libusb_interface_enumerator

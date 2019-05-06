@@ -24,7 +24,7 @@ namespace libusb::internal {
             libusb_close(devh);
         }
         std::shared_ptr<Inner> const ctx;
-        libusb_device_handle * const devh;
+        libusb_device_handle *devh;
         bool const silent;
     };
 };
@@ -71,6 +71,7 @@ std::variant<libusb::Claimed_interface, libusb::Error> libusb::Open_device::clai
     }
     return libusb::Claimed_interface(inner, interface_number);
 }
+
 
 std::variant<std::monostate, libusb::Error> libusb::Endpoint::out_clear_halt() const {
     int const r = libusb_clear_halt(inner->devh, ep_out);

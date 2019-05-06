@@ -74,28 +74,56 @@ describe('HuddlyDeviceApiUSB', () => {
     });
 
     describe('for boxfish', () => {
-      let trasnportstub;
+      let transportstub;
       let getTransportStub;
       beforeEach(() => {
-        trasnportstub = sinon.createStubInstance(NodeUsbTransport);
+        transportstub = sinon.createStubInstance(NodeUsbTransport);
       });
       afterEach(() => {
         getTransportStub.restore();
       });
 
       it('should support device when hlink handshake succeeds', async () => {
-        trasnportstub.performHlinkHandshake.returns(Promise.resolve());
-        getTransportStub = sinon.stub(deviceApi, 'getTransport').returns(trasnportstub);
+        transportstub.performHlinkHandshake.returns(Promise.resolve());
+        getTransportStub = sinon.stub(deviceApi, 'getTransport').returns(transportstub);
         const supported = await deviceApi.getValidatedTransport(mockedDevices[0]);
         expect(supported).to.be.instanceof(NodeUsbTransport);
       });
 
       it('should not support device when hlink handshake fails', async () => {
-        trasnportstub.performHlinkHandshake.returns(Promise.reject());
-        getTransportStub = sinon.stub(deviceApi, 'getTransport').returns(trasnportstub);
+        transportstub.performHlinkHandshake.returns(Promise.reject());
+        getTransportStub = sinon.stub(deviceApi, 'getTransport').returns(transportstub);
         const supported = await deviceApi.getValidatedTransport(mockedDevices[0]);
         expect(supported).to.equal(undefined);
       });
+    });
+  });
+
+  describe('#getTransport', () => {
+    let getDeviceStub;
+    beforeEach(() => {
+      getDeviceStub = sinon.stub(dummyDeviceDiscoveryManager, 'getDevice').resolves({
+        open: () => {},
+      });
+    });
+
+    afterEach(() => {
+      getDeviceStub.restore();
+    });
+
+    it('should get create a NodeUSBTransport for when serialNumber matches', async () => {
+      const transport = await deviceApi.getTransport(mockedDevices[0]);
+      expect(transport).to.be.instanceof(NodeUsbTransport);
+    });
+
+    it('should retry to find device if it cant find a matching device the first time', async () => {
+      getDeviceStub.resolves(undefined);
+      try {
+        await deviceApi.getTransport(mockedDevices[0]);
+      } catch (e) {
+        // Ok to fail
+      }
+      expect(getDeviceStub).to.have.callCount(10);
     });
   });
 

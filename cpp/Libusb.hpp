@@ -8,6 +8,9 @@
 #include <string>
 #include <variant>
 #include <vector>
+#include <thread>
+#include <chrono>
+
 
 class Libusb;
 
@@ -201,7 +204,7 @@ namespace libusb {
 			if (dev == nullptr) {
 				return;
 			}
-			//std::cout << "Libusb: libusb_unref_device " << dev << std::endl;
+			// std::cout << "Libusb: libusb_unref_device " << dev << std::endl;
 			libusb_unref_device(dev);
 		}
 

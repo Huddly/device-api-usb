@@ -96,6 +96,10 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
   }
 
   async init(): Promise<any> {
+    if (!this.device) {
+      throw new Error('Can not init transport without device');
+    }
+
     if (!this.device.endpoint) {
       try {
         const endpoint = await this.device.open();
