@@ -41,7 +41,9 @@ static inline std::variant<EndpointAndClaim, HLink_error> get_huddly_endpoint_an
         return HLink_error(HLink_error::Errors::endpoint_error, "Incorrect number of endpoints. At least two expected.");
     }
 
+
     auto maybe_claim = devh.claim_interface(ifc->bInterfaceNumber);
+
     if (std::holds_alternative<libusb::Error>(maybe_claim)) {
         return HLink_error(std::get<libusb::Error>(maybe_claim));
     }
@@ -65,7 +67,7 @@ static inline std::variant<EndpointAndClaim, HLink_error> get_huddly_endpoint_an
         return HLink_error(HLink_error::Errors::endpoint_error, "Out endpoint not found");
     }
 
-    /* std::cout << "Interface " << static_cast<int>(ifc->bInterfaceNumber)
+     /*std::cout << "Interface " << static_cast<int>(ifc->bInterfaceNumber)
             << " is VSC interface. Using this interface for HLink."
             << " ep out: " << std::hex << static_cast<int>(vsc_ep_out_num)
             << " ep in: " << static_cast<int>(vsc_ep_in_num)
