@@ -110,20 +110,16 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
   }
 
   initEventLoop(): void {
-    if (this.running) {
-      return;
-    }
-    this.startbulkLoop(this.sendMessage.bind(this)).catch(e => {
-      this.logger.error(`Failed read write loop stopped unexpectingly ${e}`);
-      this.emit('ERROR', e);
-    });
-    this.startbulkLoop(this.readMessage.bind(this)).catch(e => {
+    this.startbulkReadWrite().catch(e => {
       this.logger.error(`Failed read write loop stopped unexpectingly ${e}`);
       this.emit('ERROR', e);
     });
   }
 
-  async startbulkLoop(waitForFn: Function): Promise<void> {
+  async startbulkReadWrite(): Promise<void> {
+    if (this.running) {
+      return Promise.resolve();
+    }
     let isAttached = true;
 
     this.device.onDetach(() => {
@@ -133,7 +129,8 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     this.device.isAttached = true;
     while (isAttached && this.running) {
       try {
-        await waitForFn();
+        await this.sendMessage();
+        await this.readMessage();
       } catch (e) {
         if (e.message === 'LIBUSB_NO_DEVICE') {
           isAttached = false;
@@ -194,19 +191,19 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
           Math.min(AlignUp(expectedSize - currentLength, 1024), MAX_USB_PACKET),
           this.readTimeoutMs
           );
-        chunks.push(Buffer.from(buf));
-        currentLength += buf.length;
-      } catch (e) {
-        if (e.message === 'LIBUSB_ERROR_TIMEOUT') {
-          continue;
+          chunks.push(Buffer.from(buf));
+          currentLength += buf.length;
+        } catch (e) {
+          if (e.message === 'LIBUSB_ERROR_TIMEOUT') {
+            continue;
+          }
+          throw new Error(`read loop failed ${e}`);
         }
-        throw new Error(`read loop failed ${e}`);
       }
-    }
-    const finalBuff = Buffer.concat(chunks);
-    const result = MessagePacket.parseMessage(finalBuff);
-    chunks.splice(0, chunks.length);
-    this.emit(result.message, result);
+      const finalBuff = Buffer.concat(chunks);
+      const result = MessagePacket.parseMessage(finalBuff);
+      chunks.splice(0, chunks.length);
+      this.emit(result.message, result);
   }
 
 
