@@ -5,7 +5,8 @@ import { EventEmitter } from 'events';
 
 const MAX_USB_PACKET = 16 * 1024;
 
-const HEADER_TIMEOUT_MS = 10;
+const READ_TRANSFER_TIMEOUT_MS = 100;
+const HEADER_TIMEOUT_MS = 100;
 
 function CeilDiv(a, b) { return Math.ceil(a / b); }
 
@@ -47,7 +48,8 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
   running: any;
   vscInterface: any;
   endpoint: DeviceEndpoint;
-  timeoutMs: Number = 100;
+  readTimeoutMs: Number;
+  headerReadTimeoutMs: Number;
   listenerTimeoutId: Number;
   sendQueue: Array<SendMessage> = [];
 
@@ -55,6 +57,8 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     super();
     this._device = device;
     this.logger = logger;
+    this.readTimeoutMs = process.env.HLINK_READ_TIMEOUT_MS ? +process.env.HLINK_READ_TIMEOUT_MS : READ_TRANSFER_TIMEOUT_MS;
+    this.headerReadTimeoutMs = process.env.HLINK_HEADER_TIMEOUT_MS ? +process.env.HLINK_HEADER_TIMEOUT_MS : HEADER_TIMEOUT_MS;
     super.setMaxListeners(50);
   }
 
@@ -106,16 +110,20 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
   }
 
   initEventLoop(): void {
-    this.startbulkReadWrite().catch(e => {
+    if (this.running) {
+      return;
+    }
+    this.startbulkLoop(this.sendMessage.bind(this)).catch(e => {
+      this.logger.error(`Failed read write loop stopped unexpectingly ${e}`);
+      this.emit('ERROR', e);
+    });
+    this.startbulkLoop(this.readMessage.bind(this)).catch(e => {
       this.logger.error(`Failed read write loop stopped unexpectingly ${e}`);
       this.emit('ERROR', e);
     });
   }
 
-  async startbulkReadWrite(): Promise<void> {
-    if (this.running) {
-      return Promise.resolve();
-    }
+  async startbulkLoop(waitForFn: Function): Promise<void> {
     let isAttached = true;
 
     this.device.onDetach(() => {
@@ -125,8 +133,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     this.device.isAttached = true;
     while (isAttached && this.running) {
       try {
-        await this.sendMessage();
-        await this.readMessage();
+        await waitForFn();
       } catch (e) {
         if (e.message === 'LIBUSB_NO_DEVICE') {
           isAttached = false;
@@ -160,7 +167,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     let headerBuffer: Buffer;
     do {
       try {
-        headerBuffer = await this.endpoint.read(4096, HEADER_TIMEOUT_MS);
+        headerBuffer = await this.endpoint.read(4096, this.headerReadTimeoutMs);
       } catch (e) {
         if (e.message === 'LIBUSB_ERROR_TIMEOUT') {
           return;
@@ -185,21 +192,21 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
       try {
         const buf = await this.endpoint.read(
           Math.min(AlignUp(expectedSize - currentLength, 1024), MAX_USB_PACKET),
-          this.timeoutMs
+          this.readTimeoutMs
           );
-          chunks.push(Buffer.from(buf));
-          currentLength += buf.length;
-        } catch (e) {
-          if (e.message === 'LIBUSB_ERROR_TIMEOUT') {
-            continue;
-          }
-          throw new Error(`read loop failed ${e}`);
+        chunks.push(Buffer.from(buf));
+        currentLength += buf.length;
+      } catch (e) {
+        if (e.message === 'LIBUSB_ERROR_TIMEOUT') {
+          continue;
         }
+        throw new Error(`read loop failed ${e}`);
       }
-      const finalBuff = Buffer.concat(chunks);
-      const result = MessagePacket.parseMessage(finalBuff);
-      chunks.splice(0, chunks.length);
-      this.emit(result.message, result);
+    }
+    const finalBuff = Buffer.concat(chunks);
+    const result = MessagePacket.parseMessage(finalBuff);
+    chunks.splice(0, chunks.length);
+    this.emit(result.message, result);
   }
 
 
@@ -312,7 +319,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
   }
 
   async readChunk(packetSize: number = this.MAX_PACKET_SIZE): Promise<any> {
-    return this.endpoint.read(packetSize, this.timeoutMs);
+    return this.endpoint.read(packetSize, this.readTimeoutMs);
   }
 
   async sendChunk(chunk: Buffer): Promise<any> {
