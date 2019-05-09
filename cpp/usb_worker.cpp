@@ -191,7 +191,7 @@ struct Context {
             });
     }
     QueueItemPtr handle(QueueItemPtr itemptr, OpenDevice const *command) {
-        std::cout << "handling OpenDevice cookie " << command->cookie.cookie << std::endl;
+        //std::cout << "handling OpenDevice cookie " << command->cookie.cookie << std::endl;
 
         auto sptr = std::shared_ptr<QueueItem>(std::move(itemptr));
         auto maybe_device = devices.find(command->cookie.cookie);
@@ -213,7 +213,7 @@ struct Context {
         }
 
         auto cookie = get_cookie();
-        std::cout << "C " << command->cookie.cookie << " opened as C " << cookie.cookie << std::endl;
+        //std::cout << "C " << command->cookie.cookie << " opened as C " << cookie.cookie << std::endl;
         ep_claims.insert({cookie.cookie, std::get<EndpointAndClaim>(std::move(maybe_endpoint_and_claim))});
 
         return std::make_unique<ReturnItem>(
