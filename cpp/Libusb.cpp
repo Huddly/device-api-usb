@@ -55,6 +55,7 @@ std::variant<libusb::Device_list, libusb::Error> Libusb::get_device_list() {
     return libusb::Device_list(inner, devs, static_cast<size_t>(cnt));
 };
 
+
 Libusb libusb::Endpoint::get_context() const {
     return Libusb(inner->ctx);
 }
@@ -70,6 +71,22 @@ std::variant<libusb::Claimed_interface, libusb::Error> libusb::Open_device::clai
         return std::move(err);
     }
     return libusb::Claimed_interface(inner, interface_number);
+}
+
+
+void libusb::Open_device::wait_for_config() {
+    int config = -1;
+    int r;
+    int max_attempt = 5;
+    int count;
+    do {
+        r = libusb_get_configuration(inner->devh, &config);
+        if (r != 0) {
+            std::cerr << "Libusb: libusb_get_configuration failed: " << std::endl;
+        }
+    } while (count < max_attempt && (config == 0 || config == -1));
+
+    return;
 }
 
 

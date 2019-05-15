@@ -37,7 +37,7 @@ export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
     }
     try {
       const transport = await this.getTransport(device);
-      await transport.performHlinkHandshake();
+      // await transport.performHlinkHandshake();
       this.logger.info(':::::::::::: Transport Protocol is HLINK ::::::::::::');
       return transport;
     } catch (e) {

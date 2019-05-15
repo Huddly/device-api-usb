@@ -15,6 +15,8 @@ static inline std::variant<EndpointAndClaim, HLink_error> get_huddly_endpoint_an
     }
 	auto devh = std::get<libusb::Open_device>(maybe_devh);
 
+    // devh.wait_for_config();
+
     // Find vsc interface.
     auto maybe_config = dev.get_active_config_descriptor();
     if (std::holds_alternative<libusb::Error>(maybe_config)) {

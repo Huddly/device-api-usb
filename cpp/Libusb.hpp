@@ -99,6 +99,8 @@ namespace libusb {
 
         std::variant<Claimed_interface, Error> claim_interface(int interface_number);
 
+        void wait_for_config();
+
         Endpoint get_endpoint(uint8_t endpoint) const {
             return Endpoint(inner, endpoint);
         }
