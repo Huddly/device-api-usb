@@ -214,6 +214,7 @@ namespace libusb {
             assert(dev != nullptr);
 			assert(inner != nullptr);
             libusb_device_handle *devh = nullptr;
+            std::cout << "Libusb: libusb_open: " << dev << devh << std::endl;
             int const r = libusb_open(dev, &devh);
             if (r != 0) {
                 Error const err(r);

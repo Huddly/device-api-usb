@@ -1,4 +1,5 @@
 #include "Libusb.hpp"
+#include <unistd.h>
 
 namespace libusb::internal {
     struct Inner {
@@ -78,14 +79,23 @@ void libusb::Open_device::wait_for_config() {
     int config = -1;
     int r;
     int max_attempt = 5;
-    int count;
+    int count = 0;
     do {
         r = libusb_get_configuration(inner->devh, &config);
         if (r != 0) {
             std::cerr << "Libusb: libusb_get_configuration failed: " << std::endl;
+            return;
+        }
+        printf("sathesnth %d \n", config);
+        std::cerr << "Libusb: libusb_get_configuration: "  << count << " " << r << std::endl;
+        if (r == 0 && (config == 0 || config == -1)) {
+            printf("Sleep 2\n");
+            sleep(2);
+            count++;
         }
     } while (count < max_attempt && (config == 0 || config == -1));
 
+    printf("Done %d %d\n", count, config);
     return;
 }
 

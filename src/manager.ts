@@ -37,9 +37,9 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
   }
 
   private deviceAttached(attachedDevice): void {
-    if (attachedDevice.vid !== this.HUDDLY_VID) {
-      return;
-    }
+    // if (attachedDevice.vid !== this.HUDDLY_VID) {
+    //   return;
+    // }
     const newDevice = this.getDeviceObject(attachedDevice);
     newDevice.onDetach(this.deviceDetached.bind(this));
     this.attachedDevices.push(newDevice);

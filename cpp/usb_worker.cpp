@@ -81,6 +81,7 @@ struct ReturnItem : public QueueItem {
 };
 
 static std::string maybe_get_string(libusb::Device & dev, uint8_t string, int retry=3) {
+    std::cerr << "Libusb: maybe_get_string open: " << std::endl;
     auto maybe_devh = dev.open(true);
     if (std::holds_alternative<libusb::Error>(maybe_devh)) {
         auto err = std::get<libusb::Error>(maybe_devh);
@@ -171,8 +172,13 @@ struct Context {
             }
             if (found == 0) {
                 auto const cookie = get_cookie();
-                auto const serial = maybe_get_string(dev, descr.iSerialNumber);
-                ret_devices.emplace_back(cookie, descr.idVendor, descr.idProduct, serial, location);
+                printf("desc id %d %d", descr.idVendor, 0x2BD9);
+                if (descr.idVendor == 0x2BD9) {
+                    auto const serial = maybe_get_string(dev, descr.iSerialNumber);
+                    ret_devices.emplace_back(cookie, descr.idVendor, descr.idProduct, serial, location);
+                } else {
+                    ret_devices.emplace_back(cookie, descr.idVendor, descr.idProduct, "Uknow serial", location);
+                }
                 Device idev{dev, serial};
                 devices.insert(std::make_pair(cookie.cookie, idev));
             }

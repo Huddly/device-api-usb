@@ -9,13 +9,14 @@ struct EndpointAndClaim {
 };
 
 static inline std::variant<EndpointAndClaim, HLink_error> get_huddly_endpoint_and_claim(libusb::Device dev) {
+    std::cout << "Libusb: get_huddly_endpoint_and_claim: " << &dev << std::endl;
     auto const maybe_devh = dev.open();
     if (std::holds_alternative<libusb::Error>(maybe_devh)) {
         return HLink_error(std::get<libusb::Error>(maybe_devh));
     }
 	auto devh = std::get<libusb::Open_device>(maybe_devh);
 
-    devh.wait_for_config();
+    // devh.wait_for_config();
 
     // Find vsc interface.
     auto maybe_config = dev.get_active_config_descriptor();
