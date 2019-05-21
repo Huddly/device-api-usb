@@ -13,9 +13,10 @@ chai.use(sinonChai);
 const MAX_PACKET_SIZE = (16 * 1024);
 
 const dummyLogger = {
-  warn: () => { },
-  info: () => { },
-  error: () => { }
+  warn: (msg: string, component: string) => { },
+  info: (msg: string, component: string) => { },
+  debug: (msg: string, component: string) => { },
+  error: (msg: string, stack: string, component: string) => { }
 };
 
 
@@ -260,7 +261,7 @@ describe('UsbTransport', () => {
         await transport.read();
         expect(true).to.equals(false);
       } catch (e) {
-        expect(e.message).to.equals('Deprecated Method!');
+        expect(e.message).to.equals('Method not supported');
       }
     });
   });
@@ -372,7 +373,7 @@ describe('UsbTransport', () => {
         await transport.receive();
         expect(true).to.equals(false);
       } catch (e) {
-        expect(e.message).to.equals('Deprecated Method!');
+        expect(e.message).to.equals('Method not supported');
       }
     });
   });
