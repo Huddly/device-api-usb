@@ -97,6 +97,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
 
   async init(): Promise<any> {
     if (!this.device) {
+      this.logger.error('Device instance is undefined. Cannot init transport', '', 'Device API USB Transport');
       throw new Error('Can not init transport without device');
     }
 
@@ -106,6 +107,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
         this.endpoint = endpoint;
         this.device.endpoint = endpoint;
       } catch (e) {
+        this.logger.error('Unable to open device / claim endpoint', e, 'Device API USB Transport');
         throw e;
       }
     } else {
@@ -115,7 +117,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
 
   initEventLoop(): void {
     this.startbulkReadWrite().catch(e => {
-      this.logger.error(`Failed read write loop stopped unexpectingly ${e}`);
+      this.logger.error('Error! read/write loop stopped unexpectingly', e, 'Device API USB Transport');
       this.emit('ERROR', e);
     });
   }
@@ -139,12 +141,12 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
         if (e.message === 'LIBUSB_NO_DEVICE') {
           isAttached = false;
         }
-        this.logger.warn(`Failed in bulk read write loop with ${e}. Resuming.`);
+        this.logger.error(`Failed in bulk read write! Resuming.`, e, 'Device API USB Transport');
       }
       // Allow other fn on callstack to be called
       await new Promise(res => setImmediate(res));
     }
-    this.logger.warn(`Read write loop terminated. isAttached=${isAttached}. running=${this.running}`);
+    this.logger.warn(`Read write loop terminated. isAttached=${isAttached}. running=${this.running}`, 'Device API USB Transport');
     this.running = false;
   }
 
@@ -157,7 +159,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
         resolve();
       } catch (e) {
         if (e.message === 'LIBUSB_ERROR_TIMEOUT') {
-            throw e;
+          throw e;
         }
         reject(e);
       }
@@ -183,6 +185,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     } while (headerBuffer.length === 0);
 
     if (headerBuffer.length < MessagePacket.HEADER_SIZES.HDR_SIZE) {
+      this.logger.error(`Hlink: header is too small ${headerBuffer.length}`, '', 'Device API USB Transport');
       throw new Error(`Hlink: header is too small ${headerBuffer.length}`);
     }
 
@@ -201,6 +204,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
           if (e.message === 'LIBUSB_ERROR_TIMEOUT') {
             continue;
           }
+          this.logger.error('Read loop failed', e, 'Device API USB Transport');
           throw new Error(`read loop failed ${e}`);
         }
       }
@@ -212,7 +216,8 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
 
 
   async startListen(): Promise<void> {
-    throw new Error('----------- SHOLUD NOT HAPPEND legacy listen --------------');
+    this.logger.error('Attempting to call [startListen]! Method not supported', '', 'Device API USB Transport');
+    throw new Error('Method not supported');
   }
 
   on(eventName: string, listener: any): this {
@@ -253,7 +258,8 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
   }
 
   read(receiveMsg: string = 'unknown', timeout: number = 500): Promise<any> {
-    throw new Error('Deprecated Method!');
+    this.logger.error('Attempting to call [read]! Method not supported', '', 'Device API USB Transport');
+    throw new Error('Method not supported');
   }
 
   write(cmd: string, payload: any = Buffer.alloc(0)): Promise<any> {
@@ -277,6 +283,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
   }
 
   async close(): Promise<void> {
+    this.logger.debug('Closing event loop and device handle', 'Device API USB Transport');
     await this.stopEventLoop();
     await this.closeDevice();
   }
@@ -293,7 +300,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     if (this.device) {
       return this.init();
     }
-
+    this.logger.warn('Unable to claim interface on an uninitialized device', 'Device API USB Transport');
     return Promise.reject('Unable to claim interface of an uninitialized device!');
   }
 
@@ -303,13 +310,15 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     try {
       await endpoint.close();
     } catch (e) {
+      this.logger.warn('Failure while closing the device endpoint', 'Device API USB Transport');
       // Failing on closing on endpoint is ok
     }
     this._device = undefined;
   }
 
   async receive(): Promise<Buffer> {
-    throw new Error('Deprecated Method!');
+    this.logger.warn('Failure while closing the device endpoint', 'Device API USB Transport');
+    throw new Error('Method not supported');
   }
 
   async transfer(messageBuffer: Buffer) {

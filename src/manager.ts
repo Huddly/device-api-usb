@@ -1,7 +1,7 @@
 import BulkUsb, { BulkUsbDevice } from './bulkusbdevice';
 import EventEmitter from 'events';
 import IDeviceDiscovery from '@huddly/sdk/lib/src/interfaces/iDeviceDiscovery';
-import Logger from './logger';
+import Logger from '@huddly/sdk/lib/src/utilitis/logger';
 
 export default class DeviceDiscoveryManager implements IDeviceDiscovery {
   readonly HUDDLY_VID: number = 0x2bd9;
@@ -41,6 +41,7 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
       return;
     }
     const newDevice = this.getDeviceObject(attachedDevice);
+    this.logger.debug(`Got ATTACH event from device with id ${newDevice.id}`, 'Device API USB Manager');
     newDevice.onDetach(this.deviceDetached.bind(this));
     this.attachedDevices.push(newDevice);
     this.eventEmitter.emit('ATTACH', newDevice);
@@ -51,6 +52,7 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
       return;
     }
     this.attachedDevices = this.attachedDevices.filter(d => !removedDevice.equals(d));
+    this.logger.debug('Got DETACH event from device with id', 'Device API USB Manager');
     this.eventEmitter.emit('DETACH', removedDevice.serialNumber);
   }
 
@@ -65,16 +67,18 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
 
   async getDevice(serialNumber: string | undefined): Promise<BulkUsbDevice|undefined> {
     const { devices } = await this.deviceList();
+    this.logger.debug(`DeviceList found ${devices.length} enumerated Huddly devices`, 'Devie API USB Manager');
 
     if (serialNumber) {
+      this.logger.debug(`Filtering the devices for the following serial number: ${serialNumber}`, 'Device API USB Manager');
       return devices.find(d => d.serialNumber.indexOf(serialNumber) >= 0);
     } else if (devices.length > 0) {
       if (devices.length !== 1) {
-        this.logger.warn(`Randomly choosing between ${devices.length} Huddly devices (${devices[0].serialNumber})`);
+        this.logger.warn(`Randomly choosing between ${devices.length} Huddly devices (${devices[0].serialNumber})`, 'Device API USB Manager');
       }
       return devices[0];
     }
-    this.logger.warn(`Could not find device with serial ${serialNumber} amongst ${devices.length} devices`);
+    this.logger.warn(`Could not find device with serial ${serialNumber} amongst ${devices.length} devices`, 'Device API USB Manager');
     return undefined;
   }
 }

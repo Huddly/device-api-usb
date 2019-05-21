@@ -4,7 +4,7 @@ import sinonChai from 'sinon-chai';
 import BulkUsb from './../src/bulkusbdevice';
 import DeviceDiscoveryManager from './../src/manager';
 import { EventEmitter } from 'events';
-import Logger from './../src/logger';
+import Logger from '@huddly/sdk/lib/src/utilitis/logger';
 import { doesNotReject } from 'assert';
 
 chai.should();
