@@ -7,6 +7,8 @@
 #include <chrono>
 #include <unordered_map>
 
+#define HUDDLY_VID 0x2BD9
+
 struct ListDevices {
     ListDevices(std::function<void(int, std::vector<Usb_device>)> cb) : cb(std::move(cb)) {}
     ListDevices(ListDevices const &o) : cb(o.cb) {};
@@ -171,8 +173,12 @@ struct Context {
             }
             if (found == 0) {
                 auto const cookie = get_cookie();
-                auto const serial = maybe_get_string(dev, descr.iSerialNumber);
-                ret_devices.emplace_back(cookie, descr.idVendor, descr.idProduct, serial, location);
+                if (descr.idVendor == HUDDLY_VID) {
+                    auto const serial = maybe_get_string(dev, descr.iSerialNumber);
+                    ret_devices.emplace_back(cookie, descr.idVendor, descr.idProduct, serial, location);
+                } else {
+                    ret_devices.emplace_back(cookie, descr.idVendor, descr.idProduct, "Unknown serial", location);
+                }
                 Device idev{dev, serial};
                 devices.insert(std::make_pair(cookie.cookie, idev));
             }
