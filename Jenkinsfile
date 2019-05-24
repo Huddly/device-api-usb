@@ -27,8 +27,8 @@ pipeline {
               ws("/var/jenkins/workspace/executor$EXECUTOR_NUMBER") {
                   cleanWs()
                   checkout scm
-                  withCredentials([string(credentialsId: 'azureClijsbinariesStorageToken', variable: 'AZURE_STORAGE_ACCESS_KEY')]) {
-                      withEnv([ 'AZURE_STORAGE_ACCOUNT=clijsbinaries' ]) {
+                  withCredentials([string(credentialsId: 'azuredeviceapiusbbinariesStorageToken', variable: 'AZURE_STORAGE_ACCESS_KEY')]) {
+                      withEnv([ 'AZURE_STORAGE_ACCOUNT=deviceapiusb' ]) {
                           ansiColor('xterm') {
                               sh 'scripts/build_on_qemu.sh ~/win10'
                           }

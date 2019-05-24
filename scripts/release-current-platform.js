@@ -1,13 +1,12 @@
 const os = require('os');
-const spawnSync = require('npm-run').spawnSync;
 const fs = require('fs');
 const path = require('path');
 const rimraf = require('rimraf');
-const targz = require('tar.gz');
+const targz = require('tar');
 const sendToAzure = require('./send-to-azure');
 const copyfiles = require('copyfiles');
 
-const pkg = require('./package.json');
+const pkg = require('../package.json');
 
 const platform = os.platform();
 
@@ -43,10 +42,36 @@ for (const runtime in builtVersions) {
   targets.push(`--target=${runtime}@${version}`);
 }
 
-function copyFile() {
-  return new Promise() {
-    
-  }
+function copyDirectory(src, dest) {
+  console.log('Copy directory from:', src, 'to:', dest);
+  return new Promise((resolve, reject) => {
+    copyfiles([src, dest], { up: 1 }, (err) => {
+      if (err) {
+        reject();
+        return;
+      }
+      resolve();
+    });
+  });
+}
+
+function copyFile(sourceFile, destFile) {
+  return new Promise((resolve, reject) => {
+    console.log(`Copying: ${sourceFile} -> ${destFile}`);
+    const read = fs.createReadStream(sourceFile);
+    const write = fs.createWriteStream(destFile);
+    read.pipe(write);
+
+    write.on('finish', () => {
+      console.log(`Copied: ${sourceFile} -> ${destFile}`);
+      resolve();
+    });
+
+    write.on('error', (e) => {
+      console.log(`Error copying file: ${sourceFile} -> ${destFile}`, e);
+      reject(e);
+    });
+  });
 }
 
 function prepareBinaries() {
@@ -54,23 +79,17 @@ function prepareBinaries() {
   for (var i = 0 ; i < archs.length ; i++) {
     const arch = archs[i];
 
-    const cmdName = 'prebuildify';
-    const curCmds = targets.concat(
-      ['.',
-      ['--arch', arch].join('='),
-      ['--platform', platform].join('=')
-      ]);
-    console.log('spawning:', cmdName, curCmds);
-    spawnSync(cmdName, curCmds, { shell: true, stdio: ['inherit', 'inherit', 'inherit'] });
-    const abiPromises = [];
-
-    for (const runtime in builtVersions) {
-      const abi = [runtime, abiVersion].join('-');
+    const abiPromises = builtVersions.map( runtime => {
+      const abi = [runtime].join('-');
+      const nodeFileNames = [abi, version, platform, arch];
+      if (sha.length > 0) {
+        nodeFileNames.push(sha);
+      }
       const sourceFile = path.join('.', 'prebuilds', [platform, arch].join('-'), [abi, 'node'].join('.'));
-      const destFile = path.join('.', 'dist', [[abi, version, platform, arch, sha].join('-'), 'node'].join('.'))
+      const destFile = path.join('.', 'dist', [nodeFileNames.join('-'), 'node'].join('.'))
       filesToSend.push(destFile);
-      abiPromises.push(copyFile(sourceFile, destFile));
-    }
+      return copyFile(sourceFile, destFile);
+    });
     promises.push(Promise.all(abiPromises));
 
   }
@@ -87,9 +106,10 @@ function prepareDistPackage() {
     install: pkg.scripts.install_released_version,
   };
 
+  console.log('Copy files', destDir);
   return Promise.all(
     [
-      copyFile('./lib/*', destDir)),
+      copyDirectory('./lib/**/*', path.join(destDir, 'lib')),
       new Promise((resolve, reject) => {
         fs.writeFile(path.join(destDir, 'package.json'), JSON.stringify(pkg, null, 2), (err) => {
           if (err) {
@@ -103,17 +123,17 @@ function prepareDistPackage() {
     ]
   ).then(() => {
     console.log('Prepared package, now creating a tarball');
-
   });
 }
 
 function createTarball() {
   return new Promise((resolve, reject) => {
-    var read = targz().createReadStream(destDir);
+    var read = targz.c({ gzip: true, cwd: path.join(process.cwd(), 'dist') }, [destName]);
+    console.log('Dest dir', destDir);
     var write = fs.createWriteStream(tarballFilename);
     read.pipe(write);
     write.on('finish', () => {
-      console.log('Tarball saved');
+      console.log('Tarball saved', tarballFilename);
       filesToSend.push(tarballFilename);
       resolve();
       /*
