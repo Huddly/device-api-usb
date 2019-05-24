@@ -4,6 +4,12 @@ language: node_js
 script:
   - npm run build
   - npm run test
+  - npm run upload-artifacts
+
+
+# script:
+#   - sh build.sh
+#   - sh scripts/dependency-check.sh
 
 addons:
   apt:
@@ -23,5 +29,5 @@ matrix:
     - os: osx
       osx_image: xcode10.1
       node_js: "11.5.0"
-    - os: windows
-      node_js: "11.5.0"
+    # - os: windows
+    #   node_js: "11.5.0"

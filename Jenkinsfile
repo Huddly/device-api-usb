@@ -19,56 +19,29 @@ pipeline {
   }
   stages {
     stage('Build') {
-      failFast false
-      parallel {
-        stage('node 8 mac') {
-          agent { label "osx" }
-          options { timeout(time: 1, unit: 'HOURS') }
-          environment {
-            OS="macos"
+      failFast true
+      agent { label "docker" }
+      steps {
+          echo "Running on $NODE_NAME"
+          timeout(30) {
+              ws("/var/jenkins/workspace/executor$EXECUTOR_NUMBER") {
+                  cleanWs()
+                  checkout scm
+                  withCredentials([string(credentialsId: 'azureClijsbinariesStorageToken', variable: 'AZURE_STORAGE_ACCESS_KEY')]) {
+                      withEnv([ 'AZURE_STORAGE_ACCOUNT=clijsbinaries' ]) {
+                          ansiColor('xterm') {
+                              sh 'scripts/build_on_qemu.sh ~/win10'
+                          }
+                      }
+                  }
+              }
           }
-          steps {
-            echo "Running on $NODE_NAME"
-            cleanWs()
-            checkout scm
-
-             sshagent(credentials: ['04bb3e7e-f3b3-42f9-8792-68b5ee8acafd']) {
-              sh('scripts/build_macos.sh');
-             }
+      }
+      post {
+          always {
+              cleanWs()
+              script { stage_node_info["$STAGE_NAME"] = "$NODE_NAME"}
           }
-        }
-        stage('node 8 linux') {
-          agent { label "linux && rev6" }
-          options { timeout(time: 1, unit: 'HOURS') }
-          environment {
-            OS="linux"
-          }
-          steps {
-            echo "Running on $NODE_NAME"
-            cleanWs()
-            checkout scm
-
-             sshagent(credentials: ['04bb3e7e-f3b3-42f9-8792-68b5ee8acafd']) {
-              sh('scripts/build_linux.sh')
-             }
-          }
-        }
-        stage('node 8 win') {
-          agent { label "win10-ci01" }
-          options { timeout(time: 1, unit: 'HOURS') }
-          environment {
-            OS="win"
-          }
-          steps {
-            echo "Running on $NODE_NAME"
-            cleanWs()
-            checkout scm
-
-             sshagent(credentials: ['04bb3e7e-f3b3-42f9-8792-68b5ee8acafd']) {
-              sh('scripts/build_win.sh')
-             }
-          }
-        }
       }
     }
   }
