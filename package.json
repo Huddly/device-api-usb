@@ -42,7 +42,7 @@
     "test": "nyc mocha -r ts-node/register --recursive \"tests/**/*.spec.ts\" --exit",
     "test-js": "mocha -r ts-node/register --recursive \"lib/tests/**/*.spec.js\"",
     "napi": "prebuildify --napi --strip --verbose --target=node@10.12.0 --target=electron@3.1.6 ",
-    "upload": "",
+    "upload-build": "node scripts/release-current-platform",
     "install": "echo 'install without build'",
     "prepare": "npm run build-ts",
     "preversion": "npm run tslint"
@@ -85,9 +85,11 @@
   },
   "devDependencies": {
     "@types/mocha": "^5.2.5",
+    "azure-storage": "^2.10.3",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
     "chai-things": "^0.2.0",
+    "copyfiles": "^2.1.0",
     "mocha": "^6.0.0",
     "node-gyp": "^3.8.0",
     "nyc": "^13.1.0",
@@ -95,6 +97,7 @@
     "sinon": "^7.3.1",
     "sinon-chai": "^3.2.0",
     "source-map-support": "^0.5.9",
+    "tar": "^4.4.8",
     "ts-node": "^8.0.3",
     "tslint": "^5.15.0"
   }

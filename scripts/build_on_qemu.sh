@@ -12,7 +12,7 @@ fi
 [ -z "$EXECUTOR_NUMBER" ] && EXECUTOR_NUMBER=0
 hostport=$((2222+$EXECUTOR_NUMBER))
 
-
+GIT_COMMIT=$(git log -n 1 --pretty=format:'%H')
 # -machine pc-i440fx-2.8 is critical to remain portable between build hosts
 qemu-system-x86_64 \
        -serial none -parallel none -name windows10 \
@@ -35,11 +35,4 @@ sleep 1
 # azure cloud uploads need the correct time on the client
 ssh -p $hostport -o StrictHostKeyChecking=false jenkins@localhost 'net start w32time && w32tm //resync //force && w32tm //resync //force && date'
 scp -P $hostport -r . jenkins@localhost:/d/device-api-usb
-ssh -p $hostport jenkins@localhost "cd /d/device-api-usb/scripts && ./build_win.sh $AZURE_STORAGE_ACCOUNT $AZURE_STORAGE_ACCESS_KEY $BRANCH_NAME"
-scp -P $hostport -r jenkins@localhost:/d/device-api-usb/prebuilds/* $WORKSPACE/artifacts
-
-ls $WORKSPACE/artifacts
-
-# if [ ! -f $WORKSPACE/artifacts/*.zip ]; then
-#     exit 1
-# fi
+ssh -p $hostport jenkins@localhost "cd /d/device-api-usb/scripts && ./build_win.sh $BRANCH_NAME $GIT_COMMIT $AZURE_STORAGE_ACCESS_KEY $AZURE_STORAGE_ACCOUNT"
