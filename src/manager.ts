@@ -67,7 +67,7 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
 
   async getDevice(serialNumber: string | undefined): Promise<BulkUsbDevice|undefined> {
     const { devices } = await this.deviceList();
-    this.logger.debug(`DeviceList found ${devices.length} enumerated Huddly devices`, 'Devie API USB Manager');
+    this.logger.debug(`DeviceList found ${devices.length} enumerated Huddly devices`, 'Device API USB Manager');
 
     if (serialNumber) {
       this.logger.debug(`Filtering the devices for the following serial number: ${serialNumber}`, 'Device API USB Manager');
