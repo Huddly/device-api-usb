@@ -6,11 +6,6 @@ script:
   - npm run test
   - npm run upload-build
 
-
-# script:
-#   - sh build.sh
-#   - sh scripts/dependency-check.sh
-
 addons:
   apt:
     packages:
