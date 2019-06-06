@@ -8,7 +8,9 @@ const MAX_USB_PACKET = 16 * 1024;
 const READ_TRANSFER_TIMEOUT_MS = 100;
 const HEADER_TIMEOUT_MS = 100;
 
-function CeilDiv(a, b) { return Math.ceil(a / b); }
+function CeilDiv(a, b) {
+  return Math.ceil(a / b);
+}
 
 function AlignUp(length, alignment) {
   return alignment * CeilDiv(length, alignment);
@@ -21,12 +23,12 @@ interface SendMessage {
 }
 
 export default class NodeUsbTransport extends EventEmitter implements ITransport {
-  readonly MAX_PACKET_SIZE: number = (16 * 1024);
+  readonly MAX_PACKET_SIZE: number = 16 * 1024;
   readonly VSC_INTERFACE_CLASS = 255; // Vendor Specifc Class
   readonly DEFAULT_LOOP_READ_SPEED = 60000;
   readonly READ_STATES = Object.freeze({
     NEW_READ: 'new_read',
-    PENDING_CHUNK: 'pending_chunk'
+    PENDING_CHUNK: 'pending_chunk',
   });
 
   _device: any;
@@ -57,8 +59,12 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     super();
     this._device = device;
     this.logger = logger;
-    this.readTimeoutMs = process.env.HLINK_READ_TIMEOUT_MS ? +process.env.HLINK_READ_TIMEOUT_MS : READ_TRANSFER_TIMEOUT_MS;
-    this.headerReadTimeoutMs = process.env.HLINK_HEADER_TIMEOUT_MS ? +process.env.HLINK_HEADER_TIMEOUT_MS : HEADER_TIMEOUT_MS;
+    this.readTimeoutMs = process.env.HLINK_READ_TIMEOUT_MS
+      ? +process.env.HLINK_READ_TIMEOUT_MS
+      : READ_TRANSFER_TIMEOUT_MS;
+    this.headerReadTimeoutMs = process.env.HLINK_HEADER_TIMEOUT_MS
+      ? +process.env.HLINK_HEADER_TIMEOUT_MS
+      : HEADER_TIMEOUT_MS;
     super.setMaxListeners(50);
   }
 
@@ -87,17 +93,21 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
   }
 
   async sleep(seconds: number = 1): Promise<any> {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       const timer = setTimeout(() => {
         clearTimeout(timer);
         resolve();
-      }, (seconds * 1000));
+      }, seconds * 1000);
     });
   }
 
   async init(): Promise<any> {
     if (!this.device) {
-      this.logger.error('Device instance is undefined. Cannot init transport', '', 'Device API USB Transport');
+      this.logger.error(
+        'Device instance is undefined. Cannot init transport',
+        '',
+        'Device API USB Transport'
+      );
       throw new Error('Can not init transport without device');
     }
 
@@ -117,7 +127,11 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
 
   initEventLoop(): void {
     this.startbulkReadWrite().catch(e => {
-      this.logger.error('Error! read/write loop stopped unexpectingly', e, 'Device API USB Transport');
+      this.logger.error(
+        'Error! read/write loop stopped unexpectingly',
+        e,
+        'Device API USB Transport'
+      );
       this.emit('ERROR', e);
     });
   }
@@ -146,7 +160,10 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
       // Allow other fn on callstack to be called
       await new Promise(res => setImmediate(res));
     }
-    this.logger.warn(`Read write loop terminated. isAttached=${isAttached}. running=${this.running}`, 'Device API USB Transport');
+    this.logger.warn(
+      `Read write loop terminated. isAttached=${isAttached}. running=${this.running}`,
+      'Device API USB Transport'
+    );
     this.running = false;
   }
 
@@ -180,38 +197,44 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     } while (headerBuffer.length === 0);
 
     if (headerBuffer.length < MessagePacket.HEADER_SIZES.HDR_SIZE) {
-      this.logger.error(`Hlink: header is too small ${headerBuffer.length}`, '', 'Device API USB Transport');
+      this.logger.error(
+        `Hlink: header is too small ${headerBuffer.length}`,
+        '',
+        'Device API USB Transport'
+      );
       throw new Error(`Hlink: header is too small ${headerBuffer.length}`);
     }
 
     const expectedSize = MessagePacket.parseMessage(headerBuffer).totalSize();
     const chunks = [headerBuffer];
 
-    for (let currentLength = headerBuffer.length; currentLength < expectedSize;) {
+    for (let currentLength = headerBuffer.length; currentLength < expectedSize; ) {
       try {
         const buf = await this.endpoint.read(
           Math.min(AlignUp(expectedSize - currentLength, 1024), MAX_USB_PACKET),
           this.readTimeoutMs
-          );
-          chunks.push(Buffer.from(buf));
-          currentLength += buf.length;
-        } catch (e) {
-          if (e.message === 'LIBUSB_ERROR_TIMEOUT') {
-            continue;
-          }
-          this.logger.error('Read loop failed', e, 'Device API USB Transport');
-          throw new Error(`read loop failed ${e}`);
+        );
+        chunks.push(Buffer.from(buf));
+        currentLength += buf.length;
+      } catch (e) {
+        if (e.message === 'LIBUSB_ERROR_TIMEOUT') {
+          continue;
         }
+        throw new Error(`read loop failed ${e}`);
       }
-      const finalBuff = Buffer.concat(chunks);
-      const result = MessagePacket.parseMessage(finalBuff);
-      chunks.splice(0, chunks.length);
-      this.emit(result.message, result);
+    }
+    const finalBuff = Buffer.concat(chunks);
+    const result = MessagePacket.parseMessage(finalBuff);
+    chunks.splice(0, chunks.length);
+    this.emit(result.message, result);
   }
 
-
   async startListen(): Promise<void> {
-    this.logger.error('Attempting to call [startListen]! Method not supported', '', 'Device API USB Transport');
+    this.logger.error(
+      'Attempting to call [startListen]! Method not supported',
+      '',
+      'Device API USB Transport'
+    );
     throw new Error('Method not supported');
   }
 
@@ -253,7 +276,11 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
   }
 
   read(receiveMsg: string = 'unknown', timeout: number = 500): Promise<any> {
-    this.logger.error('Attempting to call [read]! Method not supported', '', 'Device API USB Transport');
+    this.logger.error(
+      'Attempting to call [read]! Method not supported',
+      '',
+      'Device API USB Transport'
+    );
     throw new Error('Method not supported');
   }
 
@@ -284,7 +311,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
   }
 
   async stopEventLoop(): Promise<any> {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       this.removeAllListeners();
       this.running = false;
       resolve();
@@ -295,7 +322,10 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     if (this.device) {
       return this.init();
     }
-    this.logger.warn('Unable to claim interface on an uninitialized device', 'Device API USB Transport');
+    this.logger.warn(
+      'Unable to claim interface on an uninitialized device',
+      'Device API USB Transport'
+    );
     return Promise.reject('Unable to claim interface of an uninitialized device!');
   }
 

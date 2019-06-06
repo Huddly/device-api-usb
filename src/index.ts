@@ -18,8 +18,7 @@ export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
     this.deviceDiscoveryManager = opts.manager || new DeviceDiscoveryManager(this.logger);
   }
 
-  async initialize() {
-  }
+  async initialize() {}
 
   registerForHotplugEvents(eventEmitter: EventEmitter): void {
     this.eventEmitter = eventEmitter;
@@ -41,7 +40,11 @@ export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
       this.logger.info('Transport Protocol is Hlink', 'Device API USB');
       return transport;
     } catch (e) {
-      this.logger.error(`HLink is not supported for device: ${device.serialNumber}`, e, 'Device API USB');
+      this.logger.error(
+        `HLink is not supported for device: ${device.serialNumber}`,
+        e,
+        'Device API USB'
+      );
       return undefined;
     }
   }
@@ -50,7 +53,7 @@ export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
     let usbDevice;
 
     const maxDeviceAttempt = 10;
-    for (let i = 0; (i < maxDeviceAttempt && !usbDevice); i++) {
+    for (let i = 0; i < maxDeviceAttempt && !usbDevice; i++) {
       usbDevice = await this.deviceDiscoveryManager.getDevice(device.serialNumber);
     }
 

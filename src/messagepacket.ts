@@ -1,4 +1,3 @@
-
 class Message {
   message: string;
   messageSize: number;
@@ -25,7 +24,6 @@ class Message {
  * @class MessagePacket
  */
 export default class MessagePacket {
-
   static HEADER_SIZES = Object.freeze({
     HDR_MESSAGE_SIZE_OFFSET: 10,
     HDR_PAYLOAD_SIZE_OFFSET: 12,
@@ -40,7 +38,10 @@ export default class MessagePacket {
       payloadBuffer = payload;
     }
     const payloadSize = fullPayloadSize || payloadBuffer.byteLength;
-    hdrBuffer.writeUInt16LE(messageBuffer.byteLength, MessagePacket.HEADER_SIZES.HDR_MESSAGE_SIZE_OFFSET);
+    hdrBuffer.writeUInt16LE(
+      messageBuffer.byteLength,
+      MessagePacket.HEADER_SIZES.HDR_MESSAGE_SIZE_OFFSET
+    );
     hdrBuffer.writeUInt32LE(payloadSize, MessagePacket.HEADER_SIZES.HDR_PAYLOAD_SIZE_OFFSET);
     const packageBuffer = Buffer.concat([hdrBuffer, messageBuffer, payloadBuffer]);
     return packageBuffer;
@@ -49,7 +50,9 @@ export default class MessagePacket {
   static parseMessage(messageBuffer: Buffer): Readonly<Message> {
     const HDR_SIZE = MessagePacket.HEADER_SIZES.HDR_SIZE;
     if (messageBuffer.byteLength < HDR_SIZE) {
-      throw new Error(`Header must be at least ${HDR_SIZE} bytes long. Not ${messageBuffer.length}.`);
+      throw new Error(
+        `Header must be at least ${HDR_SIZE} bytes long. Not ${messageBuffer.length}.`
+      );
     }
     const reserved = messageBuffer.slice(0, MessagePacket.HEADER_SIZES.HDR_MESSAGE_SIZE_OFFSET);
     Uint8Array.from(reserved).forEach((num, idx) => {
@@ -60,8 +63,12 @@ export default class MessagePacket {
 
     let ret: Message;
     try {
-      const messageSize = messageBuffer.readUInt16LE(MessagePacket.HEADER_SIZES.HDR_MESSAGE_SIZE_OFFSET);
-      const payloadSize = messageBuffer.readUInt32LE(MessagePacket.HEADER_SIZES.HDR_PAYLOAD_SIZE_OFFSET);
+      const messageSize = messageBuffer.readUInt16LE(
+        MessagePacket.HEADER_SIZES.HDR_MESSAGE_SIZE_OFFSET
+      );
+      const payloadSize = messageBuffer.readUInt32LE(
+        MessagePacket.HEADER_SIZES.HDR_PAYLOAD_SIZE_OFFSET
+      );
       const payloadOffset = messageSize + HDR_SIZE;
       const message = messageBuffer.toString('utf8', HDR_SIZE, payloadOffset);
       const payload = messageBuffer.slice(payloadOffset);

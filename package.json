@@ -45,8 +45,17 @@
     "upload-build": "node scripts/release-current-platform",
     "install": "echo 'install without build'",
     "prepare": "npm run build-ts",
-    "preversion": "npm run tslint"
+    "preversion": "npm run tslint",
+    "prettier": "./node_modules/.bin/prettier  --config ./.prettierrc --write src/**/*.ts",
+    "prettier-check": "./node_modules/.bin/prettier  --config ./.prettierrc --check src/**/*.ts",
+    "commit": "git-cz"
   },
+  "pre-commit": [
+    "prettier-check",
+    "tslint",
+    "build-ts",
+    "test"
+  ],
   "binary": {
     "builtVersions": [
       "electron-napi",
@@ -89,16 +98,25 @@
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
     "chai-things": "^0.2.0",
+    "commitizen": "^3.1.1",
     "copyfiles": "^2.1.0",
-    "mocha": "^6.0.0",
+    "cz-conventional-changelog": "^2.1.0",
+    "mocha": "^6.1.4",
     "node-gyp": "^4.0.0",
     "nyc": "^14.0.0",
+    "pre-commit": "^1.2.2",
     "prebuildify": "^3.0.0",
+    "prettier": "^1.17.1",
     "sinon": "^7.3.1",
     "sinon-chai": "^3.2.0",
     "source-map-support": "^0.5.9",
     "tar": "^4.4.8",
     "ts-node": "^8.0.3",
     "tslint": "^5.15.0"
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
   }
 }
