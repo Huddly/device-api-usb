@@ -37,7 +37,7 @@ export class BulkUsbDevice {
 
   open(): Promise<BulkUsbEndpoint> {
     return new Promise((resolve, reject) => {
-      return this._cpp.openDevice(this._cookie, (handle) => {
+      return this._cpp.openDevice(this._cookie, handle => {
         if (typeof handle !== 'object') {
           return reject(errstr(handle));
         }
@@ -63,51 +63,51 @@ export class BulkUsbSingleton {
   private _pollingListResolve: Array<(dev: ReadonlyArray<BulkUsbDevice>) => void>;
 
   constructor(cpp: any) {
-      this._cpp = cpp;
-      this._activeDevices = Object.freeze([]);
-      this._previousDevices = Object.freeze([]);
-      this._onAttaches = [];
-      this._isPolling = false;
-      this._pollingListResolve = [];
+    this._cpp = cpp;
+    this._activeDevices = Object.freeze([]);
+    this._previousDevices = Object.freeze([]);
+    this._onAttaches = [];
+    this._isPolling = false;
+    this._pollingListResolve = [];
   }
   public static get Instance() {
-      return this._instance || (this._instance = new this(binding));
+    return this._instance || (this._instance = new this(binding));
   }
   private _listDevices(): Promise<ReadonlyArray<BulkUsbDevice>> {
-      this._previousDevices = this._activeDevices;
-      this._activeDevices = Object.freeze([]);
-      return new Promise((resolve, reject) => {
-        this._cpp.listDevices((devices: Array<any>) => {
-          if (typeof devices !== 'object') {
-            return reject(errstr(devices));
+    this._previousDevices = this._activeDevices;
+    this._activeDevices = Object.freeze([]);
+    return new Promise((resolve, reject) => {
+      this._cpp.listDevices((devices: Array<any>) => {
+        if (typeof devices !== 'object') {
+          return reject(errstr(devices));
+        }
+        const newList = Object.freeze(devices.map(dev => new BulkUsbDevice(this._cpp, dev)));
+        const newDevices = [];
+        const ret = newList.map(newDevice => {
+          const oldDevice = this._previousDevices.find(x => x.equals(newDevice));
+          if (oldDevice) {
+            return oldDevice;
           }
-          const newList = Object.freeze(devices.map(dev => new BulkUsbDevice(this._cpp, dev)));
-          const newDevices = [];
-          const ret = newList.map((newDevice) => {
-            const oldDevice = this._previousDevices.find(x => x.equals(newDevice));
-            if (oldDevice) {
-              return oldDevice;
-            }
-            newDevices.push(newDevice);
-            return newDevice;
-          });
-
-          const removedDevices = this._previousDevices.filter(
-            prevDevice => !ret.find(curDevice => curDevice.equals(prevDevice))
-          );
-
-          removedDevices.forEach((d) => {
-            d._onDetaches.forEach(cb => cb(d));
-            if (d._openEndpoint) {
-              d._openEndpoint.isAttached = false;
-            }
-          });
-
-          this._activeDevices = Object.freeze(ret.slice());
-          newDevices.forEach(newDevice => this._onAttaches.forEach(cb => cb(newDevice)));
-          return resolve(Object.freeze(ret));
+          newDevices.push(newDevice);
+          return newDevice;
         });
+
+        const removedDevices = this._previousDevices.filter(
+          prevDevice => !ret.find(curDevice => curDevice.equals(prevDevice))
+        );
+
+        removedDevices.forEach(d => {
+          d._onDetaches.forEach(cb => cb(d));
+          if (d._openEndpoint) {
+            d._openEndpoint.isAttached = false;
+          }
+        });
+
+        this._activeDevices = Object.freeze(ret.slice());
+        newDevices.forEach(newDevice => this._onAttaches.forEach(cb => cb(newDevice)));
+        return resolve(Object.freeze(ret));
       });
+    });
   }
 
   private async _pollLoop() {
@@ -132,7 +132,7 @@ export class BulkUsbSingleton {
     if (!this._isPolling) {
       return this._listDevices();
     }
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       this._pollingListResolve.push(resolve);
     });
   }

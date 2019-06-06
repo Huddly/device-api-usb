@@ -1,4 +1,14 @@
-[![Build Status](https://travis-ci.com/Huddly/device-api-usb.svg?branch=master)](https://travis-ci.com/Huddly/device-api-usb) [![Greenkeeper badge](https://badges.greenkeeper.io/Huddly/device-api-usb.svg)](https://greenkeeper.io/)
+
+<p>
+  <a href="https://travis-ci.com/Huddly/device-api-usb"><img src="https://travis-ci.com/Huddly/device-api-usb.svg?branch=master" alt="Build Status"></a>
+  <a href="https://www.npmjs.com/package/@huddly/device-api-usb"><img src="https://badge.fury.io/js/%40huddly%2Fdevice-api-usb.svg" alt="npm badge"></a>
+  <a href="https://img.shields.io/david/Huddly/device-api-usb"><img src="https://img.shields.io/david/Huddly/device-api-usb.svg" alt="npm dependencies"></a>
+  <a href="https://img.shields.io/david/dev/Huddly/device-api-usb"><img src="https://img.shields.io/david/dev/Huddly/device-api-usb.svg" alt="npm devDependencies"></a>
+  <a href="https://npmcharts.com/compare/@huddly/device-api-usb?minimal=true"><img src="https://img.shields.io/npm/dm/@huddly/device-api-usb.svg?style=flat" alt="NPM Downloads"></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-brightgreen.svg" alt="MIT badge"></a>
+  <a href="http://commitizen.github.io/cz-cli/"><img src="https://img.shields.io/badge/commitizen-friendly-brightgreen.svg" alt="Commitizen badge"></a>
+  <a href="https://greenkeeper.io/"><img src="https://badges.greenkeeper.io/Huddly/device-api-usb.svg" alt="Greenkeeper badge"></a>
+</p>
 
 # Huddly SDK - Device Api USB
 
