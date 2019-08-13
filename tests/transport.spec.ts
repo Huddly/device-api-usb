@@ -169,18 +169,6 @@ describe('UsbTransport', () => {
       expect(readStub.callCount).to.be.equal(1);
       expect(transport.running).to.equal(true);
     });
-
-    describe('on hlink reset sequence', () => {
-      it('should emit TRANSPORT_RESET if it got a empty header', async () => {
-        readStub.returns(new Promise(resolve => {
-          setTimeout(() => resolve(Buffer.alloc(0)), 10);
-        }));
-        const resetPromise = new Promise(resolve => transport.on('TRANSPORT_RESET', resolve));
-        transport.initEventLoop();
-        const message = await resetPromise;
-        expect(message).to.be.undefined;
-      });
-    });
   });
 
   describe('#on', () => {
