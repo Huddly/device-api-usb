@@ -19,6 +19,19 @@ pipeline {
     RELEASE="${params.ReleaseBuild}"
   }
   stages {
+    stage ('Tooling') {
+      failFast true
+      agent { label 'master' }
+      steps {
+          echo "Running on $NODE_NAME"
+          timeout(30) {
+            cleanWs()
+            copyArtifacts filter: '**/tools.tar.gz', flatten: true, projectName: 'boxfish-multibranch-pipeline/master', selector: lastSuccessful(), target: '.'
+            sh 'tar xzf tools.tar.gz'
+            stash includes: "tools/**/*", name: 'tools'
+          }
+      }
+    }
     stage('Build') {
       failFast true
       agent { label "docker" }
@@ -28,6 +41,9 @@ pipeline {
           ws("/var/jenkins/workspace/executor$EXECUTOR_NUMBER") {
             cleanWs()
             checkout scm
+
+            unstash 'tools'
+
             withCredentials([string(credentialsId: 'azuredeviceapiusbbinariesStorageToken', variable: 'AZURE_STORAGE_ACCESS_KEY')]) {
               withEnv([ 'AZURE_STORAGE_ACCOUNT=deviceapiusb' ]) {
                 ansiColor('xterm') {
