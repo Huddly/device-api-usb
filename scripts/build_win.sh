@@ -18,7 +18,7 @@ git submodule update --init --recursive
 
 # source activate py27
 
-npm install -g windows-build-tools
+npm --add-python-to-path='true' --debug --global --production windows-build-tools
 npm install
 
 ARCH=x64 npm run napi

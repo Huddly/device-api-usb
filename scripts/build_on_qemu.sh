@@ -32,7 +32,11 @@ finish() {
 }
 trap finish EXIT
 sleep 1
+
+cp ./tools/clijs/build/timescript.sh timescript.sh
 # azure cloud uploads need the correct time on the client
-ssh -p $hostport -o StrictHostKeyChecking=false jenkins@localhost 'net start w32time && w32tm //resync //force && w32tm //resync //force && date'
+scp -o StrictHostKeyChecking=false -P$hostport timescript.sh jenkins@localhost:
+ssh -p $hostport jenkins@localhost ./timescript.sh `date '+%d/%m/%Y %T'`
+
 scp -P $hostport -r . jenkins@localhost:/d/device-api-usb
 ssh -p $hostport jenkins@localhost "cd /d/device-api-usb/scripts && ./build_win.sh $BRANCH_NAME $GIT_COMMIT $AZURE_STORAGE_ACCESS_KEY $AZURE_STORAGE_ACCOUNT"
