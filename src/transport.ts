@@ -240,15 +240,20 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
           clearTimeout(timer);
         }
       }, timeout);
-      this.once(msg, res => {
-        clearTimeout(timer);
-        resolve(res);
-      });
 
-      this.once('ERROR', error => {
+      const messageHandler = res => {
         clearTimeout(timer);
+        this.removeListener('ERROR', errorHandler);
+        resolve(res);
+      };
+      const errorHandler = error => {
+        clearTimeout(timer);
+        this.removeListener(msg, messageHandler);
         reject(error);
-      });
+      };
+
+      this.once(msg, messageHandler);
+      this.once('ERROR', errorHandler);
     });
   }
 
