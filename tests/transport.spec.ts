@@ -204,27 +204,66 @@ describe('UsbTransport', () => {
       this.clock.restore();
     });
 
-    it('should resolve `once` the message is emitted from super class', async () => {
-      const msg = { name: 'hello', payload: 'hello_back' };
-      onStub.callsFake((message, cb) => {
-        cb(msg);
-      });
-      const t = await transport.receiveMessage('hello', 500);
-      this.clock.tick(510);
+    describe('on success', () => {
+      it('should resolve `once` the message is emitted from super class', async () => {
+        const msg = { name: 'hello', payload: 'hello_back' };
+        onStub.callsFake((message, cb) => {
+          cb(msg);
+        });
+        const t = await transport.receiveMessage('hello', 500);
+        this.clock.tick(510);
 
-      expect(t).to.deep.equals(msg);
+        expect(t).to.deep.equals(msg);
+      });
+
+      it('should remove error message listener when main message is emitted from super class', async () => {
+        const removeListenerSpy = sinon.spy(transport, 'removeListener');
+        const msg = { name: 'test', payload: 'test 123' };
+        onStub.callsFake((message, cb) => {
+          cb(msg);
+        });
+        const t = await transport.receiveMessage('test', 500);
+        this.clock.tick(510);
+        expect(t).to.deep.equals(msg);
+        expect(removeListenerSpy.callCount).to.equals(2);
+        expect(removeListenerSpy.getCall(0).args[0]).to.equals('ERROR');
+        expect(removeListenerSpy.getCall(1).args[0]).to.equals(msg.name);
+      });
     });
 
-    it('should reject with timeout error message when timeout exceeded waiting for message to be emitted', async () => {
-      const spy = sinon.spy(transport, 'removeAllListeners');
-      try {
-        const p = transport.receiveMessage('timeout_msg', 10);
-        this.clock.tick(100);
-        await p;
-      } catch (e) {
-        expect(transport.removeAllListeners).to.have.been.calledWith('timeout_msg');
-        expect(e).to.equals('Request has timed out! timeout_msg 10');
-      }
+    describe('on timeout', () => {
+      it('should reject with timeout error message when timeout exceeded waiting for message to be emitted', async () => {
+        const spy = sinon.spy(transport, 'removeAllListeners');
+        try {
+          const p = transport.receiveMessage('timeout_msg', 10);
+          this.clock.tick(100);
+          await p;
+        } catch (e) {
+          expect(transport.removeAllListeners).to.have.been.calledWith('timeout_msg');
+          expect(e).to.equals('Request has timed out! timeout_msg 10');
+          expect(spy.calledOnce).to.equals(true);
+          return;
+        }
+        throw new Error('Did not reject receiveMessage when msg receiver times out!');
+      });
+    });
+
+    describe('on error', () => {
+      it('should reject with error message and clear listener on main message', async () => {
+        const removeListenerSpy = sinon.spy(transport, 'removeListener');
+        onStub.withArgs('ERROR').onCall(0).callsFake((msg, cb) => cb('Error Occurred!'));
+        try {
+          const p = transport.receiveMessage('buggy_msg', 10);
+          this.clock.tick(100);
+          await p;
+        } catch (e) {
+          expect(e).to.equals('Error Occurred!');
+          expect(removeListenerSpy.callCount).to.equals(1);
+          expect(removeListenerSpy.getCall(0).args[0]).to.equals('buggy_msg');
+          return;
+        }
+        throw new Error('Did not reject receiveMessage when camera emits ERROR!');
+      });
     });
 
     it('should resolve when message comes through, other listeners should stay intact', async () => {
