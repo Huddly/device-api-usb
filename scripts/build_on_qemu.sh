@@ -39,4 +39,4 @@ scp -o StrictHostKeyChecking=false -P$hostport timescript.sh jenkins@localhost:
 ssh -p $hostport jenkins@localhost ./timescript.sh `date '+%d/%m/%Y %T'`
 
 scp -P $hostport -r . jenkins@localhost:/d/device-api-usb
-ssh -p $hostport jenkins@localhost "cd /d/device-api-usb/scripts && ./build_win.sh $BRANCH_NAME $GIT_COMMIT $AZURE_STORAGE_ACCESS_KEY $AZURE_STORAGE_ACCOUNT"
+ssh -p $hostport jenkins@localhost "cd /d/device-api-usb && ./scripts/build_win.sh $BRANCH_NAME $GIT_COMMIT $AZURE_STORAGE_ACCESS_KEY $AZURE_STORAGE_ACCOUNT $RELEASE"
