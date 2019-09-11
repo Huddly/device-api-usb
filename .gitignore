@@ -10,3 +10,4 @@ coverage
 build
 cpp/binding
 prebuilds
+manifest.json
