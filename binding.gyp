@@ -57,6 +57,7 @@
               'OTHER_LDFLAGS': [ '-framework', 'CoreFoundation', '-framework', 'IOKit' ],
               'SDKROOT': 'macosx',
               'MACOSX_DEPLOYMENT_TARGET': '10.12',
+              'ENABLE_HARDENED_RUNTIME': 'YES',
             },
           }],
           ['OS=="win"', {
