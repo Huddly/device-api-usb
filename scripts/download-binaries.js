@@ -93,8 +93,19 @@ function downloadBinary(platform, arch, abiName, destFile, gitsha) {
   });
 }
 
-const prebuildsDir = path.join(__dirname, '../', 'prebuilds');
+/**
+ * Create `lib` folder in root directory if it doesn't exist
+ */
+const libDir = path.join(__dirname, '../', 'lib');
+if (!fs.existsSync(libDir)) {
+  fs.mkdirSync(libDir);
+}
 
+/**
+ * The prebuilds directory must be hosted inside `lib` directory together with the
+ * compiled source code.
+ */
+const prebuildsDir = path.join(libDir, 'prebuilds');
 if (!fs.existsSync(prebuildsDir)) {
   fs.mkdirSync(prebuildsDir);
 }
