@@ -201,9 +201,9 @@ function sendFiles() {
   return Promise.all(promises);
 }
 
-prepareBinaries()
+createManifestFile(destDir, false, sha)
+.then(prepareBinaries)
 .then(prepareDistPackage)
-.then(() => createManifestFile(destDir, false, sha))
 .then(createTarball)
 .then(sendFiles)
 .catch((e) => {
