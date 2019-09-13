@@ -49,6 +49,14 @@ for (const runtime in builtVersions) {
   targets.push(`--target=${runtime}@${version}`);
 }
 
+if (!fs.existsSync(destDir)) {
+  fs.mkdirSync(destDir);
+}
+
+if (!fs.existsSync(destScripts)) {
+  fs.mkdirSync(destScripts);
+}
+
 /**
  * Convenience function for copying the contents of a
  * directory into another directory
@@ -134,9 +142,6 @@ function prepareBinaries() {
  * @returns Promise
  */
 function prepareDistPackage() {
-  fs.mkdirSync(destDir);
-  fs.mkdirSync(destScripts);
-
   delete pkg.devDependencies;
   delete pkg.optionalDependencies;
   delete pkg.bundledDependencies;
@@ -201,9 +206,9 @@ function sendFiles() {
   return Promise.all(promises);
 }
 
-prepareBinaries()
+createManifestFile(destDir, false, sha)
+.then(prepareBinaries)
 .then(prepareDistPackage)
-.then(() => createManifestFile(destDir, false, sha))
 .then(createTarball)
 .then(sendFiles)
 .catch((e) => {
