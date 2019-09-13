@@ -45,6 +45,25 @@ function readManifestData() {
 }
 
 /**
+ * Delete a folder and all its contents recursively
+ *
+ * @param {*} path The path to the folder to be deleted
+ */
+function deleteFolderRecursive(path) {
+  if( fs.existsSync(path) ) {
+    fs.readdirSync(path).forEach(function(file,index){
+      var curPath = [path, file].join('/');
+      if(fs.lstatSync(curPath).isDirectory()) { // recurse
+        deleteFolderRecursive(curPath);
+      } else { // delete file
+        fs.unlinkSync(curPath);
+      }
+    });
+    fs.rmdirSync(path);
+  }
+};
+
+/**
  * Convenience function for downloading prebuilds binaries
  *
  * @param {*} platform Operating system platform (linux, darwin or win32)
@@ -106,6 +125,7 @@ if (!fs.existsSync(libDir)) {
  * compiled source code.
  */
 const prebuildsDir = path.join(libDir, 'prebuilds');
+deleteFolderRecursive(prebuildsDir);
 if (!fs.existsSync(prebuildsDir)) {
   fs.mkdirSync(prebuildsDir);
 }
@@ -136,6 +156,7 @@ readManifestData()
           binaryDir,
           [abiName, 'node'].join('.')
         );
+
         if (!fs.existsSync(destFile)) {
           promises.push(downloadBinary(platform, arch, abiName, destFile, gitsha));
         }
@@ -148,6 +169,7 @@ readManifestData()
           binaryDir,
           [abiName, 'node'].join('.')
         );
+
         if (!fs.existsSync(destFile)) {
           promises.push(downloadBinary(platform, arch, abiName, destFile, gitsha));
         }
@@ -155,6 +177,10 @@ readManifestData()
     });
   });
 
+  if (promises.length === 0) {
+    console.log('!!! ERROR !!! \t No prebuild binaries downloaded.');
+    return;
+  }
   Promise.all(promises).then(() => {
     console.log('Binaries installed');
   }).catch((e) => {
