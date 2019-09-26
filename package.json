@@ -97,6 +97,7 @@
     "@huddly/sdk": "^0.3.1",
     "@types/node": "^12.7.4",
     "await-sleep": "0.0.1",
+    "lodash.throttle": "^4.1.1",
     "node-addon-api": "^1.7.1",
     "typescript": "^3.4.1",
     "node-gyp-build": "^4.0.0"
