@@ -2,11 +2,13 @@ import ITransport from '@huddly/sdk/lib/src/interfaces/iTransport';
 import DeviceEndpoint from './bulkusbendpoint';
 import MessagePacket from './messagepacket';
 import { EventEmitter } from 'events';
+import throttle from 'lodash.throttle';
 
 const MAX_USB_PACKET = 16 * 1024;
 
 const READ_TRANSFER_TIMEOUT_MS = 100;
 const HEADER_TIMEOUT_MS = 100;
+const MAX_LOG_ERROR_WRITE_MS = 100;
 
 function CeilDiv(a, b) {
   return Math.ceil(a / b);
@@ -126,12 +128,15 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
   }
 
   initEventLoop(): void {
-    this.startbulkReadWrite().catch(e => {
+    const logErrorThrottled = throttle(e => {
       this.logger.error(
         'Error! read/write loop stopped unexpectingly',
         e,
         'Device API USB Transport'
       );
+    }, MAX_LOG_ERROR_WRITE_MS);
+    this.startbulkReadWrite().catch(e => {
+      logErrorThrottled(e);
       this.emit('ERROR', e);
     });
   }
