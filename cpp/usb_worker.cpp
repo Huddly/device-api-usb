@@ -89,8 +89,8 @@ static std::string maybe_get_string(libusb::Device & dev, uint8_t string, int re
         switch (err.number) {
         case LIBUSB_ERROR_ACCESS:
         case LIBUSB_ERROR_NOT_SUPPORTED:
-        case LIBUSB_ERROR_NOT_FOUND:
             break;
+        case LIBUSB_ERROR_NOT_FOUND:
         case LIBUSB_ERROR_NO_DEVICE:
             if (retry <= 0) {
                 return err.get_message();
@@ -107,8 +107,8 @@ static std::string maybe_get_string(libusb::Device & dev, uint8_t string, int re
     auto maybe_string = devh.get_string_descriptor(string);
     if (std::holds_alternative<libusb::Error>(maybe_string)) {
         auto err = std::get<libusb::Error>(maybe_string);
-        //std::cerr << "Error getting string descriptor: " << err.get_message() << std::endl;
-        return err.get_message();
+        std::cerr << "Error getting string descriptor: " << err.get_message() << std::endl;
+        return "";
     }
     return std::get<std::string>(std::move(maybe_string));
 }
@@ -157,6 +157,7 @@ struct Context {
         std::vector<Usb_device> ret_devices;
         ret_devices.reserve(list.count);
         std::string serial;
+        std::cerr << "LOOKING FOR SEREAL \n \n" << serial << std::endl;
         for (auto i = 0u; i < list.count; i++) {
             auto dev = list.at(i);
             auto const descr = dev.get_device_descriptor();
@@ -175,7 +176,11 @@ struct Context {
                 auto const cookie = get_cookie();
                 if (descr.idVendor == HUDDLY_VID) {
                     auto const serial = maybe_get_string(dev, descr.iSerialNumber);
-                    ret_devices.emplace_back(cookie, descr.idVendor, descr.idProduct, serial, location);
+                    if (!serial.empty()) {
+                        ret_devices.emplace_back(cookie, descr.idVendor, descr.idProduct, serial, location);
+                    } else {
+                        ret_devices.emplace_back(cookie, descr.idVendor, descr.idProduct, "Unknown serial", location);
+                    }
                 } else {
                     ret_devices.emplace_back(cookie, descr.idVendor, descr.idProduct, "Unknown serial", location);
                 }
