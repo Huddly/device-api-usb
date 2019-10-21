@@ -157,7 +157,6 @@ struct Context {
         std::vector<Usb_device> ret_devices;
         ret_devices.reserve(list.count);
         std::string serial;
-        std::cerr << "LOOKING FOR SEREAL \n \n" << serial << std::endl;
         for (auto i = 0u; i < list.count; i++) {
             auto dev = list.at(i);
             auto const descr = dev.get_device_descriptor();
