@@ -46,3 +46,8 @@ If you want to local development together with the @huddly/sdk here is the recom
 - Start the typescript watcher ```npm run watch-ts```
 
 Now you can change things in the sdk and the Device Api USB folder and your changes will be reflected in the compiled code in the sdk.
+
+
+## Licence
+[MIT](LICENCE)
+Note that the compiled Node extension includes Libusb, and is thus subject to the LGPL.
