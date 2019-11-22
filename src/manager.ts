@@ -79,7 +79,7 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
         `Filtering the devices for the following serial number: ${serialNumber}`,
         'Device API USB Manager'
       );
-      return devices.find(d => d.serialNumber.indexOf(serialNumber) >= 0);
+      return devices.find(d => d.serialNumber.replace(' ', '_').indexOf(serialNumber) >= 0);
     } else if (devices.length > 0) {
       if (devices.length !== 1) {
         this.logger.warn(
