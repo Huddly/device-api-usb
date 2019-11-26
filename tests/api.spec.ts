@@ -125,6 +125,42 @@ describe('HuddlyDeviceApiUSB', () => {
       }
       expect(getDeviceStub).to.have.callCount(10);
     });
+
+    it('should retry max attempt times ', async () => {
+      deviceApi = new HuddlyDeviceAPIUSB({
+        logger: dummyLogger,
+        manager: dummyDeviceDiscoveryManager,
+        maxSearchRetries: 99,
+      });
+      getDeviceStub.resolves(undefined);
+      try {
+        await deviceApi.getTransport(mockedDevices[0]);
+      } catch (e) {
+        // Ok to fail
+      }
+      expect(getDeviceStub).to.have.callCount(99);
+    });
+
+
+    it('should retry until found ', async () => {
+      deviceApi = new HuddlyDeviceAPIUSB({
+        logger: dummyLogger,
+        manager: dummyDeviceDiscoveryManager,
+        alwaysRetry: true,
+      });
+      for (let i = 0; i < 77; i++) {
+        getDeviceStub.onCall(i).resolves(undefined);
+      }
+      getDeviceStub.onCall(78).resolves({
+        open: () => {},
+      });
+      try {
+        await deviceApi.getTransport(mockedDevices[0]);
+      } catch (e) {
+        // Ok to fail
+      }
+      expect(getDeviceStub).to.have.callCount(78);
+    });
   });
 
   describe('#isUVCControlsSupported', () => {

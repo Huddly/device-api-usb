@@ -12,10 +12,14 @@ export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
   logger: any;
   eventEmitter: EventEmitter;
   deviceDiscoveryManager: DeviceDiscoveryManager;
+  maxSearchRetries: Number;
+  alwaysRetry: boolean;
 
   constructor(opts: DeviceApiOpts = {}) {
     this.logger = opts.logger || new Logger(true);
     this.deviceDiscoveryManager = opts.manager || new DeviceDiscoveryManager(this.logger);
+    this.maxSearchRetries = opts.maxSearchRetries || 10;
+    this.alwaysRetry = opts.alwaysRetry || false;
   }
 
   async initialize() {}
@@ -52,9 +56,10 @@ export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
   async getTransport(device): Promise<NodeUsbTransport> {
     let usbDevice;
 
-    const maxDeviceAttempt = 10;
-    for (let i = 0; i < maxDeviceAttempt && !usbDevice; i++) {
+    let i = 0;
+    while ((this.alwaysRetry || i < this.maxSearchRetries) && !usbDevice) {
       usbDevice = await this.deviceDiscoveryManager.getDevice(device.serialNumber);
+      i++;
     }
 
     const transport = new NodeUsbTransport(usbDevice, this.logger);
