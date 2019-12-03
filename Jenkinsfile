@@ -34,7 +34,7 @@ pipeline {
     }
     stage('Build') {
       failFast true
-      agent { label "docker" }
+      agent { label "docker && qemu" }
       steps {
         echo "Running on $NODE_NAME"
         timeout(30) {
