@@ -258,7 +258,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     return this;
   }
 
-  receiveMessage(msg: string, timeout: number = 3000): Promise<any> {
+  receiveMessage(msg: string, timeout: number = 10000): Promise<any> {
     return new Promise(async (resolve, reject) => {
       const timer = setTimeout(async () => {
         try {
