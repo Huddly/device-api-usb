@@ -174,12 +174,13 @@ struct Context {
             if (found == 0) {
                 auto const cookie = get_cookie();
                 if (descr.idVendor == HUDDLY_VID) {
-                    auto const serial = maybe_get_string(dev, descr.iSerialNumber);
-                    if (!serial.empty()) {
-                        ret_devices.emplace_back(cookie, descr.idVendor, descr.idProduct, serial, location);
-                    } else {
-                        ret_devices.emplace_back(cookie, descr.idVendor, descr.idProduct, "Unknown serial", location);
-                    }
+                    // auto const serial = maybe_get_string(dev, descr.iSerialNumber);
+                    auto const serial = "B42G01060";
+                    // if (!serial.empty()) {
+                    ret_devices.emplace_back(cookie, descr.idVendor, descr.idProduct, serial, location);
+                    // } else {
+                    //     ret_devices.emplace_back(cookie, descr.idVendor, descr.idProduct, "Unknown serial", location);
+                    // }
                 } else {
                     ret_devices.emplace_back(cookie, descr.idVendor, descr.idProduct, "Unknown serial", location);
                 }
