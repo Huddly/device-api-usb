@@ -1,9 +1,5 @@
 language: node_js
 
-node_js:
-  - "11.5.0"
-  - "12.4.0"
-
 script:
   - npm run build
   - npm run test
@@ -18,6 +14,7 @@ matrix:
   include:
     - os: linux
       dist: xenial
+      node_js: "11.5.0"
       before_install:
         - sudo add-apt-repository --yes ppa:jonathonf/gcc-8.1
         - sudo apt-get update
@@ -25,3 +22,15 @@ matrix:
         - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 60
     - os: osx
       osx_image: xcode10.1
+      node_js: "11.5.0"
+    - os: linux
+      dist: xenial
+      node_js: "12.4.0"
+      before_install:
+        - sudo add-apt-repository --yes ppa:jonathonf/gcc-8.1
+        - sudo apt-get update
+        - sudo apt-get install -y gcc-8 g++-8
+        - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 60
+    - os: osx
+      osx_image: xcode10.1
+      node_js: "12.4.0"
