@@ -12,8 +12,15 @@ export TRAVIS_TAG=$1
 
 export AZURE_CONTAINER="device-api-usb"
 
+prepare_node_env() {
+  if ! nvs use 12.4.0; then
+    nvs add 12.4.0
+    nvs use 12.4.0
+  fi
+}
+
 source /c/ProgramData/nvs/nvs.sh
-nvs use 11.5.0
+prepare_node_env
 
 git submodule update --init --recursive
 
