@@ -194,14 +194,15 @@ describe('UsbTransport', () => {
 
   describe('#receiveMessage', () => {
     let onStub;
+    let fakeTimer;
     beforeEach(() => {
       onStub = sinon.stub(transport, 'once');
-      this.clock = sinon.useFakeTimers();
+      fakeTimer = sinon.useFakeTimers();
     });
 
     afterEach(() => {
       onStub.restore();
-      this.clock.restore();
+      fakeTimer.restore();
     });
 
     describe('on success', () => {
@@ -211,7 +212,7 @@ describe('UsbTransport', () => {
           cb(msg);
         });
         const t = await transport.receiveMessage('hello', 500);
-        this.clock.tick(510);
+        fakeTimer.tick(510);
 
         expect(t).to.deep.equals(msg);
       });
@@ -223,7 +224,7 @@ describe('UsbTransport', () => {
           cb(msg);
         });
         const t = await transport.receiveMessage('test', 500);
-        this.clock.tick(510);
+        fakeTimer.tick(510);
         expect(t).to.deep.equals(msg);
         expect(removeListenerSpy.callCount).to.equals(2);
         expect(removeListenerSpy.getCall(0).args[0]).to.equals('ERROR');
@@ -236,7 +237,7 @@ describe('UsbTransport', () => {
         const spy = sinon.spy(transport, 'removeAllListeners');
         try {
           const p = transport.receiveMessage('timeout_msg', 10);
-          this.clock.tick(100);
+          fakeTimer.tick(100);
           await p;
         } catch (e) {
           expect(transport.removeAllListeners).to.have.been.calledWith('timeout_msg');
@@ -254,7 +255,7 @@ describe('UsbTransport', () => {
         onStub.withArgs('ERROR').onCall(0).callsFake((msg, cb) => cb('Error Occurred!'));
         try {
           const p = transport.receiveMessage('buggy_msg', 10);
-          this.clock.tick(100);
+          fakeTimer.tick(100);
           await p;
         } catch (e) {
           expect(e).to.equals('Error Occurred!');
@@ -274,7 +275,7 @@ describe('UsbTransport', () => {
       });
       transport.on('test-subscribe', messageSpy);
       await transport.receiveMessage('test-subscribe', 500);
-      this.clock.tick(510);
+      fakeTimer.tick(510);
 
       transport.emit('test-subscribe');
 
