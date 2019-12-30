@@ -1,3 +1,13 @@
+#### 0.2.13 (2019-12-30)
+
+##### Chores
+
+* **package.json:**  Update dependencies to their latest stable versions ([77769078](https://github.com/Huddly/device-api-usb/commit/77769078c8fea381710ef76ef69d5959e0e093cd))
+
+##### New Features
+
+* **Possible to configure how long we look for usb device:**  Configurable max # attempts previously ([e53a508b](https://github.com/Huddly/device-api-usb/commit/e53a508b57284f748ff5fbded37d09d7ae89eb14))
+
 #### 0.2.11 (2019-10-21)
 
 #### 0.2.9 (2019-09-11)
