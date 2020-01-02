@@ -113,7 +113,7 @@
     "generate-changelog": "^1.8.0",
     "mocha": "^6.2.2",
     "node-gyp": "^4.0.0",
-    "nyc": "^14.1.1",
+    "nyc": "^15.0.0",
     "pre-commit": "^1.2.2",
     "prebuildify": "^3.0.4",
     "prettier": "^1.19.1",
