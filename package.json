@@ -111,7 +111,7 @@
     "copyfiles": "^2.1.1",
     "cz-conventional-changelog": "^3.0.2",
     "generate-changelog": "^1.8.0",
-    "mocha": "^6.2.2",
+    "mocha": "^7.0.0",
     "node-gyp": "^5.0.7",
     "nyc": "^15.0.0",
     "pre-commit": "^1.2.2",
