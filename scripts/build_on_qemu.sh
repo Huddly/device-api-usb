@@ -19,13 +19,15 @@ qemu-system-x86_64 \
        -rtc clock=host,base=localtime \
        -smp 8 -enable-kvm -m 8G \
        -device virtio-scsi-pci,id=scsi \
-       -drive file=$WIN_IMG_PATH/05-boot-with-workspace.qcow2,if=virtio,index=0 \
+       -drive file=$WIN_IMG_PATH/05-boot-with-workspace.$EXECUTOR_NUMBER.qcow2,if=virtio,index=0 \
        -drive file=$WIN_IMG_PATH/workspace.qcow2,if=virtio,index=1 \
        -net nic -net user,hostfwd=tcp:127.0.0.1:$hostport-:22 \
        -usb -device usb-tablet \
        -display none \
        -machine pc-i440fx-2.8 \
        -loadvm jenkins &
+
+tools/clijs/build/vm-build.sh
 pid=$!
 finish() {
 	kill $pid
