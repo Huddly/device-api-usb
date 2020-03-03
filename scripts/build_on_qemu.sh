@@ -26,15 +26,12 @@ qemu-system-x86_64 \
        -display none \
        -machine pc-i440fx-2.8 \
        -loadvm jenkins &
-
-tools/clijs/build/vm-build.sh
 pid=$!
 finish() {
 	kill $pid
 }
 trap finish EXIT
 sleep 1
-
 cp ./tools/clijs/build/timescript.sh timescript.sh
 # azure cloud uploads need the correct time on the client
 scp -o StrictHostKeyChecking=false -P$hostport timescript.sh jenkins@localhost:
