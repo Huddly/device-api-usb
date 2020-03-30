@@ -161,6 +161,8 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
           isAttached = false;
         }
         this.logger.error(`Failed in bulk read write! Resuming.`, e, 'Device API USB Transport');
+        // Throttle if it keeps on failing read/write
+        await new Promise(res => setTimeout(res, 100));
       }
       // Allow other fn on callstack to be called
       await new Promise(res => setImmediate(res));
