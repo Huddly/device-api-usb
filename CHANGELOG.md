@@ -1,29 +1,3 @@
-#### 0.2.14 (2020-04-20)
-
-##### Chores
-
-* **package.json:**
-  *  prebuildify target bumped to electron version 7.1.2 ([bc2b15a3](https://github.com/Huddly/device-api-usb/commit/bc2b15a3a88211d40206be8f44ff90295a6d5501))
-  *  Add node 12 to napi node targets ([faa93c76](https://github.com/Huddly/device-api-usb/commit/faa93c760bb1b7108475cd18f44f6d6f7447fcb8))
-* **Node:**  Support for Node 12 LTS ([633d501b](https://github.com/Huddly/device-api-usb/commit/633d501bf8ada15b5d2ffe413fa1f4cae7507de4))
-
-##### Bug Fixes
-
-* **travis.yml:**  Fix the 2x2 matrix ([47a48844](https://github.com/Huddly/device-api-usb/commit/47a48844397520b88f819ccf1fb28c30eb639263))
-
-#### 0.2.14 (2020-04-20)
-
-##### Chores
-
-* **package.json:**
-  *  prebuildify target bumped to electron version 7.1.2 ([bc2b15a3](https://github.com/Huddly/device-api-usb/commit/bc2b15a3a88211d40206be8f44ff90295a6d5501))
-  *  Add node 12 to napi node targets ([faa93c76](https://github.com/Huddly/device-api-usb/commit/faa93c760bb1b7108475cd18f44f6d6f7447fcb8))
-* **Node:**  Support for Node 12 LTS ([633d501b](https://github.com/Huddly/device-api-usb/commit/633d501bf8ada15b5d2ffe413fa1f4cae7507de4))
-
-##### Bug Fixes
-
-* **travis.yml:**  Fix the 2x2 matrix ([47a48844](https://github.com/Huddly/device-api-usb/commit/47a48844397520b88f819ccf1fb28c30eb639263))
-
 #### 0.2.14 (2020-04-16)
 
 ##### Chores
