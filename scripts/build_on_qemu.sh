@@ -13,6 +13,13 @@ fi
 hostport=$((2222+$EXECUTOR_NUMBER))
 
 GIT_COMMIT=$(git log -n 1 --pretty=format:'%H')
+
+# IF TAG set to empty
+if $(git describe --exact-match $GIT_COMMIT); then
+       # GIT_COMMIT=""
+       ECHO "RELEASE _____________ NOT _COOMMIT"
+fi
+
 # -machine pc-i440fx-2.8 is critical to remain portable between build hosts
 qemu-system-x86_64 \
        -serial none -parallel none -name windows10 \
