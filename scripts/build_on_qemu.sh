@@ -13,6 +13,13 @@ fi
 hostport=$((2222+$EXECUTOR_NUMBER))
 
 GIT_COMMIT=$(git log -n 1 --pretty=format:'%H')
+
+TAG=$(git describe --exact-match $GIT_COMMIT)
+# IF TAG set to empty
+if [$? -eq 0]; then
+       GIT_COMMIT=""
+fi
+
 # -machine pc-i440fx-2.8 is critical to remain portable between build hosts
 qemu-system-x86_64 \
        -serial none -parallel none -name windows10 \
