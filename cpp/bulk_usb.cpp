@@ -151,7 +151,7 @@ static Napi::Value openDevice(Napi::CallbackInfo const & info) {
     auto cbinfo = std::make_shared<CallbackInfo>(env, js_cb);
     async.ref();
     worker_arg->open_device(cookie, [env, cbinfo=std::move(cbinfo)](int error, Usb_cookie handle){
-        //std::cout << "in openDevice" << std::endl;
+        std::cout << "in openDevice" << std::endl;
         auto scope = cbinfo->scope();
         if (error) {
             cbinfo->callback({Napi::Number::From(env, error)});
