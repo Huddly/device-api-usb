@@ -386,10 +386,10 @@ void usb_worker_entry(void *argp) {
     Context ctx(std::move(usbctx));
 
     for(;;) {
-        std::cout << "Waiting for command item" << std::endl;
+        // std::cout << "Waiting for command item" << std::endl;
         auto itemptr = arg.to_worker->pop();
         auto & item = WorkItem::upcast(itemptr);
-        std::cout << "\t Got item " << item.get_name() << std::endl;
+        // std::cout << "\t Got item " << item.get_name() << std::endl;
         QueueItemPtr response;
         if (auto list_devices = std::get_if<ListDevices>(&item.command)) {
             response = ctx.handle(std::move(itemptr), list_devices);
@@ -407,11 +407,17 @@ void usb_worker_entry(void *argp) {
             response = ctx.handle(std::move(itemptr), close_device);
         }
         else {
-            std::cout << "\t no response" << std::endl;
+            // std::cout << "\t no response" << std::endl;
+            char *a = (char*) 0x0000;
+            *a = 20;
             assert(false);
         }
-        std::cout << "\t response asserting" << std::endl;
+        // std::cout << "\t response asserting" << std::endl;
         assert(response);
+        // if (!response) {
+        //     char *a = (char*) 0x0000;
+        //     *a = 20;
+        // }
         arg.from_worker->push(std::move(response));
     }
 }
