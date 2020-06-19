@@ -408,8 +408,8 @@ void usb_worker_entry(void *argp) {
         }
         else {
             // std::cout << "\t no response" << std::endl;
-            char *a = (char*) 0x0000;
-            *a = 20;
+            // char *a = (char*) 0x0000;
+            // *a = 20;
             assert(false);
         }
         // std::cout << "\t response asserting" << std::endl;

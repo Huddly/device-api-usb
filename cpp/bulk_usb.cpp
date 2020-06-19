@@ -23,6 +23,8 @@ struct AsyncWrapper {
         refs += 1;
     }
     void send() {
+        assert(ref > 0);
+        assert(async != nullptr);
         uv_async_send(async);
     }
 private:
@@ -36,6 +38,10 @@ private:
             return;
         }
         refs -= worker_arg->process();
+        if (refs < 0) {
+            char *a = (char*) 0x0000;
+            *a = 20;
+        }
         assert(refs >= 0);
         if (refs == 0 && async != nullptr) {
             uv_close(reinterpret_cast<uv_handle_t *>(async), [](uv_handle_t *handle) {
