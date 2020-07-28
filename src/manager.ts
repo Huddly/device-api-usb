@@ -54,7 +54,10 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
       return;
     }
     this.attachedDevices = this.attachedDevices.filter(d => !removedDevice.equals(d));
-    this.logger.debug('Got DETACH event from device with id', 'Device API USB Manager');
+    this.logger.debug(
+      `Got ATTACH event from device with id ${removedDevice.serialNumber}`,
+      'Device API USB Manager'
+    );
     this.eventEmitter.emit('DETACH', removedDevice.serialNumber);
   }
 
