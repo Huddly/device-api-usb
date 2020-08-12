@@ -103,7 +103,7 @@
     "typescript": "^3.7.4"
   },
   "devDependencies": {
-    "@types/mocha": "^5.2.7",
+    "@types/mocha": "^8.0.2",
     "azure-storage": "^2.10.3",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
