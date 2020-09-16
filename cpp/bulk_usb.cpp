@@ -1,52 +1,99 @@
 #include "usb_worker.hpp"
 #include "queue_uv.hpp"
+
 #define NAPI_VERSION 3
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Weffc++"
 #include <napi.h>
 #pragma GCC diagnostic pop
+
+#include "mutex_uv.hpp"
+
 #include <uv.h>
+
 #include <cassert>
 #include <iostream>
 
 static uv_thread_t worker;
 static std::unique_ptr<Usb_worker_arg> worker_arg;
 
+struct UvAsyncWrapper {
+    UvAsyncWrapper(std::function<void(void)> callback)
+        : inner(new Inner(std::move(callback))) {}
+    UvAsyncWrapper(UvAsyncWrapper const &) = delete;
+    UvAsyncWrapper operator=(UvAsyncWrapper const &) = delete;
+    ~UvAsyncWrapper()
+    {
+        assert(inner);
+        inner->close();
+        inner = nullptr;
+    }
+
+    void send() {
+        assert(inner);
+        uv_async_send(&inner->async);
+    }
+
+private:
+    struct Inner {
+        Inner(std::function<void(void)> callback)
+            : async{}
+            , callback(std::move(callback))
+        {
+            uv_async_init(uv_default_loop(), &async, static_callback);
+            async.data = this;
+        }
+        static Inner * from(void *ptr) { return reinterpret_cast<Inner *>(ptr); }
+        uv_handle_t * handle() { return reinterpret_cast<uv_handle_t *>(&async); }
+        static void static_callback(uv_async_t *async) {
+            from(async->data)->callback();
+        }
+        void close() {
+            uv_close(handle(), [](uv_handle_t *handle) {
+                delete from(handle->data);
+            });
+        }
+        uv_async_t async;
+        std::function<void(void)> callback;
+    };
+    Inner *inner;
+};
+
 struct AsyncWrapper {
-    AsyncWrapper() : refs(0), async(nullptr) {}
+    AsyncWrapper() : refs(0), mutex(), async(nullptr) {}
+    AsyncWrapper(AsyncWrapper const &) = delete;
+    AsyncWrapper &operator=(AsyncWrapper const &) = delete;
+
     void ref() {
+        auto lock = mutex.lock();
         if (refs == 0) {
-            async = new uv_async_t;
-            uv_async_init(uv_default_loop(), async, process_cb);
-            async->data = this;
+            async = std::make_unique<UvAsyncWrapper>([this](){process_cb();});
         }
         refs += 1;
     }
     void send() {
-        uv_async_send(async);
+        assert(async);
+        async->send();
     }
 private:
-    static void process_cb(uv_async_t *async) {
-        auto &self = *reinterpret_cast<AsyncWrapper *>(async->data);
-        self.process_cb();
-    }
     void process_cb() {
         // This function is always called in the context of the main node thread/loop
         if (!worker_arg) {
             return;
         }
-        refs -= worker_arg->process();
+        int const processed = worker_arg->process();
+        auto lock = mutex.lock();
+        refs -= processed;
         assert(refs >= 0);
-        if (refs == 0 && async != nullptr) {
-            uv_close(reinterpret_cast<uv_handle_t *>(async), [](uv_handle_t *handle) {
-                auto async = reinterpret_cast<uv_async_t *>(handle);
-                delete async;
-            });
+        if (refs == 0) {
+            // We should eagerly free the async object when we don't need it, as
+            // if it exists, node won't exit.
             async = nullptr;
         }
     }
     int refs;
-    uv_async_t *async;
+    MutexUv mutex;
+    std::unique_ptr<UvAsyncWrapper> async;
 };
 
 static AsyncWrapper async;
