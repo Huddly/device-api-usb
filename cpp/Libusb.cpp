@@ -36,7 +36,7 @@ std::variant<Libusb, libusb::Error> Libusb::init()
     if (r != 0) {
         libusb::Error err(r);
         std::cerr << "Libusb: libusb_init failed: " << err.get_message() << std::endl;
-        return std::move(err);
+        return err;
     }
     libusb_set_option(ctx, LIBUSB_OPTION_USE_USBDK);
     return Libusb(ctx);
@@ -67,7 +67,7 @@ std::variant<libusb::Claimed_interface, libusb::Error> libusb::Open_device::clai
     if (r < 0) {
         libusb::Error err(r);
         std::cerr << "Libusb: libusb_claim_interface failed: " << err.get_message() << std::endl;
-        return std::move(err);
+        return err;
     }
     return libusb::Claimed_interface(inner, interface_number);
 }

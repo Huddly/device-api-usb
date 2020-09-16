@@ -240,7 +240,7 @@ namespace libusb {
             if (r != 0) {
                 Error err(r);
                 std::cerr << "Libusb: libusb_get_active_config_descriptor failed: " << err.get_message() << std::endl;
-                return std::move(err);
+                return err;
             }
             return Config_descriptor(inner, config);
         }
