@@ -41,6 +41,7 @@ struct Usb_worker_arg {
     void write_device(Usb_cookie cookie, std::vector<uint8_t> const data, unsigned timeout_ms, std::function<void(int, int)>);
     void read_device(Usb_cookie cookie, size_t max_size, unsigned timeout_ms, std::function<void(int, std::vector<uint8_t>)> cb);
     void close_device(Usb_cookie cookie, std::function<void(int)> cb);
+    void crash();
 };
 
 void usb_worker_entry(void *arg);
