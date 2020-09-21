@@ -56,7 +56,10 @@ struct CloseDevice {
     std::function<void(int)> cb;
 };
 
-typedef std::variant<ListDevices, OpenDevice, WriteDevice, ReadDevice, CloseDevice> CommandVariants;
+struct Crash {
+};
+
+using CommandVariants = std::variant<ListDevices, OpenDevice, WriteDevice, ReadDevice, CloseDevice, Crash>;
 
 struct WorkItem : public QueueItem {
     explicit WorkItem(std::string name, CommandVariants command)
@@ -345,6 +348,21 @@ public:
             });
     }
 
+    QueueItemPtr handle(QueueItemPtr itemptr, Crash const *command) {
+        auto sptr = std::shared_ptr<QueueItem>(std::move(itemptr));
+
+        uintptr_t ptr = 0;
+        uint32_t volatile *data = reinterpret_cast<uint32_t *>(ptr);
+        *data += 1;
+
+        assert(false);
+
+        return std::make_unique<ReturnItem>(
+            "crash failure",
+            [sptr=std::move(sptr), command]() {}
+        );
+    }
+
     Usb_cookie get_cookie() {
         cookie_counter += 1;
         if (cookie_counter == 0) {
@@ -406,6 +424,9 @@ void usb_worker_entry(void *argp) {
         else if (auto close_device = std::get_if<CloseDevice>(&item.command)) {
             response = ctx.handle(std::move(itemptr), close_device);
         }
+        else if (auto crash = std::get_if<Crash>(&item.command)) {
+            response = ctx.handle(std::move(itemptr), crash);
+        }
         else {
             assert(false);
         }
@@ -443,4 +464,8 @@ void Usb_worker_arg::close_device(Usb_cookie cookie, std::function<void(int)> cb
     CloseDevice close(cookie, std::move(cb));
     auto cmd = std::make_unique<WorkItem>("close_device", std::move(close));
     to_worker->push(std::move(cmd));
+}
+
+void Usb_worker_arg::crash() {
+    to_worker->push(std::make_unique<WorkItem>("crash", Crash()));
 }

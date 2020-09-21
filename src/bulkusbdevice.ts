@@ -145,6 +145,10 @@ export class BulkUsbSingleton {
     this._onAttaches.push(cb);
     await Promise.all(devices.map(cb));
   }
+
+  crash() {
+    this._cpp.crash();
+  }
 }
 
 export default BulkUsbSingleton.Instance;

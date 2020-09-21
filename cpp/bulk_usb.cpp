@@ -255,6 +255,16 @@ static Napi::Value closeDevice(Napi::CallbackInfo const & info) {
     return env.Undefined();
 }
 
+static Napi::Value crash(Napi::CallbackInfo const & info) {
+    auto const env = info.Env();
+    if (info.Length() != 0) {
+        Napi::TypeError::New(env, "Expected 0 arguments").ThrowAsJavaScriptException();
+        return env.Undefined();
+    }
+    worker_arg->crash();
+    return env.Undefined();
+}
+
 Napi::Object InitAll(Napi::Env env, Napi::Object exports) {
     // Start our worker thread
     assert(!worker_arg);
@@ -267,6 +277,7 @@ Napi::Object InitAll(Napi::Env env, Napi::Object exports) {
     exports.Set("writeDevice", Napi::Function::New(env, writeDevice));
     exports.Set("readDevice", Napi::Function::New(env, readDevice));
     exports.Set("closeDevice", Napi::Function::New(env, closeDevice));
+    exports.Set("crash", Napi::Function::New(env, crash));
     return exports;
 }
 
