@@ -72,7 +72,10 @@ struct AsyncWrapper {
         refs += 1;
     }
     void send() {
-        assert(async);
+        auto lock = mutex.lock();
+        if (!async) {
+            return; // This is ok, all the events might be processed by the previous from_worker.pop_nowait
+        }
         async->send();
     }
 private:
