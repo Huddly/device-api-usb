@@ -5,7 +5,7 @@ cache:
 
 script:
   - npm run build
-  - npm run test
+  - npm run test --loglevel verbose
   - npm run upload-build
 
 addons:
