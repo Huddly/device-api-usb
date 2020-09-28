@@ -1,5 +1,8 @@
 language: node_js
 
+cache:
+  npm: false
+
 script:
   - npm run build
   - npm run test
