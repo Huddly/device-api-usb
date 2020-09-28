@@ -13,7 +13,7 @@ addons:
 matrix:
   include:
     - os: linux
-      dist: xenial
+      dist: bionic
       node_js: "11.5.0"
       before_install:
         - sudo add-apt-repository --yes ppa:jonathonf/gcc-8.1
@@ -24,7 +24,7 @@ matrix:
       osx_image: xcode10.1
       node_js: "11.5.0"
     - os: linux
-      dist: xenial
+      dist: bionic
       node_js: "12.4.0"
       before_install:
         - sudo add-apt-repository --yes ppa:jonathonf/gcc-8.1
