@@ -13,19 +13,19 @@ chai.use(require('chai-things')).use(require('chai-as-promised'));
 
 const mockedDevices = [
   {
-      vid: 11225,
-      pid: 33,
-      serialNumber: 'B40I00070',
-      location: [ 0, 2 ],
-      onDetach: sinon.stub(),
-      equals: sinon.stub(),
-      id: '',
+    vid: 11225,
+    pid: 33,
+    serialNumber: 'B40I00070',
+    location: [0, 2],
+    onDetach: sinon.stub(),
+    equals: sinon.stub(),
+    id: '',
   },
   {
     vid: 11225,
     pid: 33,
     serialNumber: 'B40I09970',
-    location: [ 4, 6 ],
+    location: [4, 6],
     onDetach: sinon.stub(),
     equals: sinon.stub(),
     id: '',
@@ -34,7 +34,7 @@ const mockedDevices = [
     vid: 0x2bd1,
     pid: 0x22,
     serialNumber: 'ABCDSF',
-    location: [ 1, 3 ],
+    location: [1, 3],
     onDetach: sinon.stub(),
     equals: sinon.stub(),
     id: '',
@@ -49,7 +49,8 @@ describe('HuddlyUsbDeviceManager', () => {
     devicemanager = new DeviceDiscoveryManager(dummyLogger);
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    devicemanager.destroy();
   });
 
   describe('#registerForHotplugEvents', () => {
@@ -152,7 +153,7 @@ describe('HuddlyUsbDeviceManager', () => {
         done();
       });
       devicemanager.registerForHotplugEvents(emitter);
-      attachStub.callArgWith(0, { id: '123', serialNumber: 'SRL123', pid: 0x21, vid: devicemanager.HUDDLY_VID, onDetach: () => {}});
+      attachStub.callArgWith(0, { id: '123', serialNumber: 'SRL123', pid: 0x21, vid: devicemanager.HUDDLY_VID, onDetach: () => { } });
     });
 
     it('should fire detach events for all undiscovered cached cameras', (done) => {
@@ -161,9 +162,11 @@ describe('HuddlyUsbDeviceManager', () => {
         done();
       });
       devicemanager.registerForHotplugEvents(emitter);
-      attachStub.callArgWith(0, { id: '123', serialNumber: 'SRL123', pid: 0x21, vid: devicemanager.HUDDLY_VID, onDetach: (cb) => {
-        cb({ id: '456', serialNumber: 'SRL456', pid: 0x21, vid: devicemanager.HUDDLY_VID });
-      }});
+      attachStub.callArgWith(0, {
+        id: '123', serialNumber: 'SRL123', pid: 0x21, vid: devicemanager.HUDDLY_VID, onDetach: (cb) => {
+          cb({ id: '456', serialNumber: 'SRL456', pid: 0x21, vid: devicemanager.HUDDLY_VID });
+        }
+      });
 
     });
   });
@@ -175,7 +178,7 @@ describe('HuddlyUsbDeviceManager', () => {
       * This device will serve as a detached device.
       */
       listDeviceStub = sinon.stub(BulkUsb, 'listDevices').resolves([
-        { id: '123', serialNumber: 'SRL123', pid: 0x21, vid: devicemanager.HUDDLY_VID, onDetach: (cb) => {} },
+        { id: '123', serialNumber: 'SRL123', pid: 0x21, vid: devicemanager.HUDDLY_VID, onDetach: (cb) => { } },
       ]);
     });
 

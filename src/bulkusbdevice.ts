@@ -112,7 +112,7 @@ export class BulkUsbSingleton {
 
   private async _pollLoop() {
     this._isPolling = true;
-    for (;;) {
+    while (this._isPolling) {
       // Guarantee that the actual _listDevices call is done after the listDevices call.
       // Not before (cached), and not while listing, but after.
       const toResolve = this._pollingListResolve;
@@ -144,6 +144,10 @@ export class BulkUsbSingleton {
     const devices = await this.listDevices();
     this._onAttaches.push(cb);
     await Promise.all(devices.map(cb));
+  }
+
+  stop() {
+    this._isPolling = false;
   }
 
   crash() {

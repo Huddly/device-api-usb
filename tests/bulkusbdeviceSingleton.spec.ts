@@ -21,6 +21,10 @@ describe('BulkUsbDeviceSingleton', () => {
     bulkusbSingleton = new BulkUsbSingleton(dummyCpp);
   });
 
+  afterEach(() => {
+    bulkusbSingleton.stop();
+  });
+
   describe('#listDevice', () => {
     beforeEach(() => {
       dummyCpp.listDevices.yields([

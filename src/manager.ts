@@ -28,6 +28,7 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
   }
 
   destroy(): void {
+    BulkUsb.stop();
     if (this.pollInterval) {
       clearInterval(this.pollInterval);
     }
