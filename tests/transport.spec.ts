@@ -349,19 +349,21 @@ describe('UsbTransport', () => {
   describe('#close', () => {
     let transferStub;
     let readStub;
+    let readRejectTimer;
     beforeEach(async () => {
       await transport.init();
       transferStub = sinon.stub(transport.endpoint, 'write').returns(new Promise(resolve => {
         setTimeout(resolve, 10);
       }));
       readStub = sinon.stub(transport.endpoint, 'read').returns(new Promise((resolve, reject) => {
-        setTimeout(() => reject(new Error('LIBUSB_ERROR_TIMEOUT')), 10);
+        readRejectTimer = setTimeout(() => reject(new Error('LIBUSB_ERROR_TIMEOUT')), 10);
       }));
     });
 
-    afterEach(() => {
+    afterEach(async () => {
       transferStub.restore();
       readStub.restore();
+      clearTimeout(readRejectTimer);
     });
 
     it('should release the vsc interface', async () => {
