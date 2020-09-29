@@ -15,7 +15,7 @@
 #include <iostream>
 
 static uv_thread_t worker;
-static std::unique_ptr<Usb_worker_arg> worker_arg;
+static Usb_worker_arg *worker_arg;
 
 struct UvAsyncWrapper {
     UvAsyncWrapper(std::function<void(void)> callback)
@@ -320,7 +320,7 @@ Napi::Object InitAll(Napi::Env env, Napi::Object exports) {
     assert(!worker_arg);
     auto to_worker = make_uv_queue();
     auto from_worker = make_uv_queue([](){ async.send(); });
-    worker_arg = std::make_unique<Usb_worker_arg>(std::move(to_worker), std::move(from_worker));
+    worker_arg = new Usb_worker_arg(std::move(to_worker), std::move(from_worker));
     uv_thread_create(&worker, usb_worker_entry, worker_arg->as_vptr());
     exports.Set("listDevices", Napi::Function::New(env, listDevices));
     exports.Set("openDevice", Napi::Function::New(env, openDevice));
