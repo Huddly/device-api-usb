@@ -17,7 +17,7 @@ GIT_COMMIT=$(git log -n 1 --pretty=format:'%H')
 EXIT_CODE=0
 TAG=$(git describe --exact-match $GIT_COMMIT) || EXIT_CODE=$?
 # IF TAG set to empty
-if [EXIT_CODE -eq 0]; then
+if [[$EXIT_CODE == 0]]; then
        GIT_COMMIT=""
 fi
 
