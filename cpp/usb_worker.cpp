@@ -91,6 +91,11 @@ static std::string maybe_get_string(libusb::Device & dev, uint8_t string, int re
         auto err = std::get<libusb::Error>(maybe_devh);
         switch (err.number) {
         case LIBUSB_ERROR_ACCESS:
+            if (retry <= 0) {
+                return err.get_message();
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            return maybe_get_string(dev, string, retry - 1);
         case LIBUSB_ERROR_NOT_SUPPORTED:
             break;
         case LIBUSB_ERROR_NOT_FOUND:
@@ -178,7 +183,7 @@ struct Context {
                 auto const cookie = get_cookie();
                 if (descr.idVendor == HUDDLY_VID) {
                     auto const serial = maybe_get_string(dev, descr.iSerialNumber);
-                    if (!serial.empty()) {
+                    if (!serial.empty() && serial != "LIBUSB_ERROR_ACCESS") {
                         ret_devices.emplace_back(cookie, descr.idVendor, descr.idProduct, serial, location);
                     } else {
                         ret_devices.emplace_back(cookie, descr.idVendor, descr.idProduct, "Unknown serial", location);
@@ -190,6 +195,9 @@ struct Context {
                 devices.insert(std::make_pair(cookie.cookie, idev));
             }
             else {
+                if (serial.empty()){
+                    serial = maybe_get_string(dev, descr.iSerialNumber);
+                }
                 ret_devices.emplace_back(Usb_cookie(found), descr.idVendor, descr.idProduct, serial, location);
                 Device idev{dev, serial};
                 devices.insert(std::make_pair(found, idev));
