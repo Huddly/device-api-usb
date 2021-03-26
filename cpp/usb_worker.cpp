@@ -94,7 +94,7 @@ static std::string maybe_get_string(libusb::Device & dev, uint8_t string, int re
             if (retry <= 0) {
                 return err.get_message();
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            std::this_thread::sleep_for(std::chrono::milliseconds(500/retry));
             return maybe_get_string(dev, string, retry - 1);
         case LIBUSB_ERROR_NOT_SUPPORTED:
             break;
