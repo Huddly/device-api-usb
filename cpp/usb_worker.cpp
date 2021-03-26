@@ -91,6 +91,7 @@ static std::string maybe_get_string(libusb::Device & dev, uint8_t string, int re
         auto err = std::get<libusb::Error>(maybe_devh);
         switch (err.number) {
         case LIBUSB_ERROR_ACCESS:
+            std::cout << "Got LIBUSB_ERROR_ACCESS\n";
             if (retry <= 0) {
                 return err.get_message();
             }
