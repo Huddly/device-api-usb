@@ -85,7 +85,7 @@ export class BulkUsbSingleton {
         const newDevices = [];
         const ret = newList.map(newDevice => {
           const oldDevice = this._previousDevices.find(x => x.equals(newDevice));
-          if (oldDevice) {
+          if (oldDevice && oldDevice.serialNumber != 'Unknown serial') {
             return oldDevice;
           }
           newDevices.push(newDevice);
