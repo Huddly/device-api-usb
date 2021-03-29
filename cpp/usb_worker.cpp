@@ -91,7 +91,6 @@ static std::string maybe_get_string(libusb::Device & dev, uint8_t string, int re
         auto err = std::get<libusb::Error>(maybe_devh);
         switch (err.number) {
         case LIBUSB_ERROR_ACCESS:
-            std::cout << "Got LIBUSB_ERROR_ACCESS\n";
         case LIBUSB_ERROR_NOT_SUPPORTED:
             break;
         case LIBUSB_ERROR_NOT_FOUND:
@@ -167,17 +166,10 @@ struct Context {
             auto const location = dev.get_location();
             uint32_t found = 0;
             for (auto const &i : old_devices) {
-                // if (i.second.dev == dev && !i.second.serial.empty()) {
                 if (i.second.dev == dev) {
                     found = i.first;
                     dev = i.second.dev;
                     serial = i.second.serial;
-                    std::cout << "Reusing with serial: " << serial << "\n";
-                    // if (i.second.serial == "Unknown serial"){
-                    //     std::cout << "Marking 1\n";
-                    //     found = 0;
-                    // }
-                    //std::cout << "Reusing device in list" << std::endl;
                     break;
                 }
             }
@@ -188,23 +180,18 @@ struct Context {
                     if (!serial.empty() && serial != "LIBUSB_ERROR_ACCESS") {
                         ret_devices.emplace_back(cookie, descr.idVendor, descr.idProduct, serial, location);
                     } else {
-                        std::cout << "else clause: " << serial << "\n";
-                        ret_devices.emplace_back(cookie, descr.idVendor, descr.idProduct, "Unknown serial - the only time", location);
+                        ret_devices.emplace_back(cookie, descr.idVendor, descr.idProduct, "Unknown serial", location);
                     }
                 } else {
-                    std::cout << "idVendor: " << descr.idVendor << "\n";
-                    std::cout << "second else clause: " << serial << "\n";
                     ret_devices.emplace_back(cookie, descr.idVendor, descr.idProduct, "Unknown serial", location);
                 }
                 Device idev{dev, serial};
                 devices.insert(std::make_pair(cookie.cookie, idev));
             }
             else {
-                std::cout << "Serial is " << serial << "\n";
                 if (serial.empty() || (serial == "Unknown serial")){
                     serial = maybe_get_string(dev, descr.iSerialNumber);
                 }
-                std::cout << "Serial is once again " << serial << "\n";
                 ret_devices.emplace_back(Usb_cookie(found), descr.idVendor, descr.idProduct, serial, location);
                 Device idev{dev, serial};
                 devices.insert(std::make_pair(found, idev));
