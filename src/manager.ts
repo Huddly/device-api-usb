@@ -79,16 +79,6 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
         `Filtering the devices for the following serial number: ${serialNumber}`,
         'Device API USB Manager'
       );
-      this.logger.debug(
-        `Printing devices`,
-        `Itai debug`
-      );
-      for (const element of devices) {
-        this.logger.debug(
-          `Serial number: ${element.serialNumber}`,
-          `Itai debug`
-        );
-      }
       return devices.find(d => d.serialNumber.indexOf(serialNumber) >= 0);
     } else if (devices.length > 0) {
       if (devices.length !== 1) {

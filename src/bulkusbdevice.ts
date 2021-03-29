@@ -83,16 +83,6 @@ export class BulkUsbSingleton {
           return reject(errstr(devices));
         }
         const newList = Object.freeze(devices.map(dev => new BulkUsbDevice(this._cpp, dev)));
-        console.log(`----------------`);
-        for (const element of newList) {
-          if (element.vid == 0x2BD9) { // HUDDLY_VID
-            console.log(`element:`);
-            console.log(`vid    ${element.vid}`);
-            console.log(`pid    ${element.pid}`);
-            console.log(`serial ${element.serialNumber}`);
-          }
-        }
-        console.log(`xxxxxxxxxxxxxxxx`);
         const newDevices = [];
         const ret = newList.map(newDevice => {
           const oldDevice = this._previousDevices.find(x => x.equals(newDevice));
@@ -115,14 +105,6 @@ export class BulkUsbSingleton {
 
         this._activeDevices = Object.freeze(ret.slice());
         newDevices.forEach(newDevice => this._onAttaches.forEach(cb => cb(newDevice)));
-        for (const element of ret) {
-          if (element.vid == 0x2BD9) { // HUDDLY_VID
-            console.log(`element:`);
-            console.log(`vid    ${element.vid}`);
-            console.log(`pid    ${element.pid}`);
-            console.log(`serial ${element.serialNumber}`);
-          }
-        }
         return resolve(Object.freeze(ret));
       });
     });
