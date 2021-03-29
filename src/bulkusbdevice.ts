@@ -49,7 +49,7 @@ export class BulkUsbDevice {
   }
 
   equals(other: BulkUsbDevice): boolean {
-    return this._cookie === other._cookie;
+    return this._cookie === other._cookie && this.serialNumber === other.serialNumber;
   }
 }
 
