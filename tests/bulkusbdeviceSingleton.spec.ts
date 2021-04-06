@@ -52,6 +52,40 @@ describe('BulkUsbDeviceSingleton', () => {
       expect(devices[1].serialNumber).to.be.equal('serial-2');
       expect(devices[2].serialNumber).to.be.equal('serial-1');
     });
+
+    it('should update serial if current is unknown', async () => {
+      dummyCpp.listDevices.yields([
+        {
+          vid: 0x21,
+          pid: 0x21,
+          serial: 'Unknown serial',
+          cookie: 1,
+        },
+        {
+          vid: 0x21,
+          pid: 0x21,
+          serial: 'serial-2',
+          cookie: 2,
+        }
+      ]);
+      await bulkusbSingleton.listDevices();
+      dummyCpp.listDevices.yields([
+        {
+          vid: 0x21,
+          pid: 0x21,
+          serial: 'serial-2',
+          cookie: 2
+        },
+        {
+          vid: 0x21,
+          pid: 0x21,
+          serial: 'New serial',
+          cookie: 1
+        },
+      ]);
+      const updatedDevices = await bulkusbSingleton.listDevices();
+      expect(updatedDevices[1].serialNumber).to.be.equal('New serial');
+    });
   });
 
   describe('#onAttach', () => {
