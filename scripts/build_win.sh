@@ -32,4 +32,5 @@ npm ci
 npm run napi-64
 npm run napi-32
 
-npm run upload-build
+# Package tar.gz is uploaded by travis, it should not be overriden
+npm run upload-binaries
