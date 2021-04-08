@@ -175,6 +175,10 @@ function prepareDistPackage() {
  * @returns Promise
  */
 function createTarball() {
+  console.log('Skip tar.gz on ', process.env.SKIP_TAR, platform);
+  if (process.env.SKIP_TAR) {
+    return Promise.resolve();
+  }
   return new Promise((resolve, reject) => {
     var read = targz.c({ gzip: true, cwd: path.join(process.cwd(), 'dist') }, [destName]);
     console.log('Dest dir', destDir);
