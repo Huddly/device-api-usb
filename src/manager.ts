@@ -53,7 +53,7 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
     if (removedDevice.vid !== this.HUDDLY_VID) {
       return;
     }
-    this.attachedDevices = this.attachedDevices.filter(d => !removedDevice.equals(d));
+    this.attachedDevices = this.attachedDevices.filter((d) => !removedDevice.equals(d));
     this.logger.debug('Got DETACH event from device with id', 'Device API USB Manager');
     this.eventEmitter.emit('DETACH', removedDevice.serialNumber);
   }
@@ -63,7 +63,7 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
     // To avoid race
     BulkUsb.onAttach(async () => {});
     const allDevices = await BulkUsb.listDevices();
-    const devices = allDevices.filter(dev => dev.vid === 0x2bd9);
+    const devices = allDevices.filter((dev) => dev.vid === 0x2bd9);
     return { devices };
   }
 
@@ -79,7 +79,7 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
         `Filtering the devices for the following serial number: ${serialNumber}`,
         'Device API USB Manager'
       );
-      return devices.find(d => d.serialNumber.indexOf(serialNumber) >= 0);
+      return devices.find((d) => d.serialNumber.indexOf(serialNumber) >= 0);
     } else if (devices.length > 0) {
       if (devices.length !== 1) {
         this.logger.warn(

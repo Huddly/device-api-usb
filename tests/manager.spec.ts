@@ -66,8 +66,8 @@ describe('HuddlyUsbDeviceManager', () => {
         devicemanager.destroy();
       });
 
-      it('should emit USB_ATTACH when a huddly device is attached', () => {
-        const attachPromise = new Promise((resolve) => {
+      it('should emit USB_ATTACH when a huddly device is attached', (): Promise<any> => {
+        const attachPromise = new Promise((resolve: any) => {
           emitter.on('ATTACH', (device) => {
             expect(device.serialNumber).to.equal(mockedDevices[0].serialNumber);
             resolve();
@@ -101,7 +101,7 @@ describe('HuddlyUsbDeviceManager', () => {
       });
 
       it('should emit USB_DETACH with serial', () => {
-        const detachPromise = new Promise((resolve) => {
+        const detachPromise = new Promise((resolve: any) => {
           emitter.on('DETACH', (deviceId) => {
             expect(deviceId).to.equal(mockedDevices[0].serialNumber);
             resolve();
