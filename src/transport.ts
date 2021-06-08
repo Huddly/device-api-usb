@@ -94,8 +94,8 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     // this.eventLoopSpeed = timeout;
   }
 
-  async sleep(seconds: number = 1): Promise<any> {
-    return new Promise(resolve => {
+  async sleep(seconds: number = 1): Promise<void> {
+    return new Promise((resolve) => {
       const timer = setTimeout(() => {
         clearTimeout(timer);
         resolve();
@@ -128,14 +128,14 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
   }
 
   initEventLoop(): void {
-    const logErrorThrottled = throttle(e => {
+    const logErrorThrottled = throttle((e) => {
       this.logger.error(
         'Error! read/write loop stopped unexpectingly',
         e,
         'Device API USB Transport'
       );
     }, MAX_LOG_ERROR_WRITE_MS);
-    this.startbulkReadWrite().catch(e => {
+    this.startbulkReadWrite().catch((e) => {
       logErrorThrottled(e);
       this.emit('ERROR', e);
     });
@@ -162,10 +162,10 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
         }
         this.logger.error(`Failed in bulk read write! Resuming.`, e, 'Device API USB Transport');
         // Throttle if it keeps on failing read/write
-        await new Promise(res => setTimeout(res, 100));
+        await new Promise((res) => setTimeout(res, 100));
       }
       // Allow other fn on callstack to be called
-      await new Promise(res => setImmediate(res));
+      await new Promise((res) => setImmediate(res));
     }
     this.logger.warn(
       `Read write loop terminated. isAttached=${isAttached}. running=${this.running}`,
@@ -271,12 +271,12 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
         }
       }, timeout);
 
-      const messageHandler = res => {
+      const messageHandler = (res) => {
         clearTimeout(timer);
         this.removeListener('ERROR', errorHandler);
         resolve(res);
       };
-      const errorHandler = error => {
+      const errorHandler = (error) => {
         clearTimeout(timer);
         this.removeListener(msg, messageHandler);
         reject(error);
@@ -311,7 +311,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     return this.write('hlink-mb-unsubscribe', command);
   }
 
-  clear(): Promise<any> {
+  clear(): Promise<void> {
     return Promise.resolve();
     // return this.performHlinkHandshake(); // Uncomenting this line will make the usb communication stuck
   }
@@ -322,8 +322,8 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     await this.closeDevice();
   }
 
-  async stopEventLoop(): Promise<any> {
-    return new Promise(resolve => {
+  async stopEventLoop(): Promise<void> {
+    return new Promise((resolve) => {
       this.removeAllListeners();
       this.running = false;
       resolve();

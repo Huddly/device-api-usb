@@ -37,7 +37,7 @@ export class BulkUsbDevice {
 
   open(): Promise<BulkUsbEndpoint> {
     return new Promise((resolve, reject) => {
-      return this._cpp.openDevice(this._cookie, handle => {
+      return this._cpp.openDevice(this._cookie, (handle) => {
         if (typeof handle !== 'object') {
           return reject(errstr(handle));
         }
@@ -81,10 +81,10 @@ export class BulkUsbSingleton {
         if (typeof devices !== 'object') {
           return reject(errstr(devices));
         }
-        const newList = Object.freeze(devices.map(dev => new BulkUsbDevice(this._cpp, dev)));
+        const newList = Object.freeze(devices.map((dev) => new BulkUsbDevice(this._cpp, dev)));
         const newDevices = [];
-        const ret = newList.map(newDevice => {
-          const oldDevice = this._previousDevices.find(x => x.equals(newDevice));
+        const ret = newList.map((newDevice) => {
+          const oldDevice = this._previousDevices.find((x) => x.equals(newDevice));
           if (oldDevice && oldDevice.serialNumber != 'Unknown serial') {
             return oldDevice;
           }
@@ -93,18 +93,18 @@ export class BulkUsbSingleton {
         });
 
         const removedDevices = this._previousDevices.filter(
-          prevDevice => !ret.find(curDevice => curDevice.equals(prevDevice))
+          (prevDevice) => !ret.find((curDevice) => curDevice.equals(prevDevice))
         );
 
-        removedDevices.forEach(d => {
-          d._onDetaches.forEach(cb => cb(d));
+        removedDevices.forEach((d) => {
+          d._onDetaches.forEach((cb) => cb(d));
           if (d._openEndpoint) {
             d._openEndpoint.isAttached = false;
           }
         });
 
         this._activeDevices = Object.freeze(ret.slice());
-        newDevices.forEach(newDevice => this._onAttaches.forEach(cb => cb(newDevice)));
+        newDevices.forEach((newDevice) => this._onAttaches.forEach((cb) => cb(newDevice)));
         return resolve(Object.freeze(ret));
       });
     });
@@ -119,7 +119,7 @@ export class BulkUsbSingleton {
       this._pollingListResolve = [];
       try {
         const devices = await this._listDevices();
-        toResolve.map(cb => cb(devices));
+        toResolve.map((cb) => cb(devices));
       } catch (e) {
         console.log(`BulkUsb attach poll loop got error: ${e}`);
         await sleep(1000); // Sleep some more to avoid spamming.
@@ -132,7 +132,7 @@ export class BulkUsbSingleton {
     if (!this._isPolling) {
       return this._listDevices();
     }
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       this._pollingListResolve.push(resolve);
     });
   }
