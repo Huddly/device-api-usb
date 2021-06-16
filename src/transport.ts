@@ -1,4 +1,5 @@
 import ITransport from '@huddly/sdk/lib/src/interfaces/iTransport';
+import Logger from '@huddly/sdk/lib/src/utilitis/logger';
 import DeviceEndpoint from './bulkusbendpoint';
 import MessagePacket from './messagepacket';
 import { EventEmitter } from 'events';
@@ -48,7 +49,6 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
    */
   eventLoopSpeed: number = this.DEFAULT_LOOP_READ_SPEED;
 
-  logger: any;
   running: any;
   vscInterface: any;
   endpoint: DeviceEndpoint;
@@ -57,10 +57,9 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
   listenerTimeoutId: Number;
   sendQueue: Array<SendMessage> = [];
 
-  constructor(device: any, logger: any) {
+  constructor(device: any) {
     super();
     this._device = device;
-    this.logger = logger;
     this.readTimeoutMs = process.env.HLINK_READ_TIMEOUT_MS
       ? +process.env.HLINK_READ_TIMEOUT_MS
       : READ_TRANSFER_TIMEOUT_MS;
@@ -105,7 +104,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
 
   async init(): Promise<any> {
     if (!this.device) {
-      this.logger.error(
+      Logger.error(
         'Device instance is undefined. Cannot init transport',
         '',
         'Device API USB Transport'
@@ -119,7 +118,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
         this.endpoint = endpoint;
         this.device.endpoint = endpoint;
       } catch (e) {
-        this.logger.error('Unable to open device / claim endpoint', e, 'Device API USB Transport');
+        Logger.error('Unable to open device / claim endpoint', e, 'Device API USB Transport');
         throw e;
       }
     } else {
@@ -129,11 +128,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
 
   initEventLoop(): void {
     const logErrorThrottled = throttle((e) => {
-      this.logger.error(
-        'Error! read/write loop stopped unexpectingly',
-        e,
-        'Device API USB Transport'
-      );
+      Logger.error('Error! read/write loop stopped unexpectingly', e, 'Device API USB Transport');
     }, MAX_LOG_ERROR_WRITE_MS);
     this.startbulkReadWrite().catch((e) => {
       logErrorThrottled(e);
@@ -160,14 +155,14 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
         if (e.message === 'LIBUSB_NO_DEVICE') {
           isAttached = false;
         }
-        this.logger.error(`Failed in bulk read write! Resuming.`, e, 'Device API USB Transport');
+        Logger.error(`Failed in bulk read write! Resuming.`, e, 'Device API USB Transport');
         // Throttle if it keeps on failing read/write
         await new Promise((res) => setTimeout(res, 100));
       }
       // Allow other fn on callstack to be called
       await new Promise((res) => setImmediate(res));
     }
-    this.logger.warn(
+    Logger.warn(
       `Read write loop terminated. isAttached=${isAttached}. running=${this.running}`,
       'Device API USB Transport'
     );
@@ -204,7 +199,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     } while (headerBuffer.length === 0);
 
     if (headerBuffer.length < MessagePacket.HEADER_SIZES.HDR_SIZE) {
-      this.logger.error(
+      Logger.error(
         `Hlink: header is too small ${headerBuffer.length}`,
         '',
         'Device API USB Transport'
@@ -237,7 +232,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
   }
 
   async startListen(): Promise<void> {
-    this.logger.error(
+    Logger.error(
       'Attempting to call [startListen]! Method not supported',
       '',
       'Device API USB Transport'
@@ -288,11 +283,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
   }
 
   read(receiveMsg: string = 'unknown', timeout: number = 500): Promise<any> {
-    this.logger.error(
-      'Attempting to call [read]! Method not supported',
-      '',
-      'Device API USB Transport'
-    );
+    Logger.error('Attempting to call [read]! Method not supported', '', 'Device API USB Transport');
     throw new Error('Method not supported');
   }
 
@@ -317,7 +308,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
   }
 
   async close(): Promise<void> {
-    this.logger.debug('Closing event loop and device handle', 'Device API USB Transport');
+    Logger.debug('Closing event loop and device handle', 'Device API USB Transport');
     await this.stopEventLoop();
     await this.closeDevice();
   }
@@ -334,10 +325,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     if (this.device) {
       return this.init();
     }
-    this.logger.warn(
-      'Unable to claim interface on an uninitialized device',
-      'Device API USB Transport'
-    );
+    Logger.warn('Unable to claim interface on an uninitialized device', 'Device API USB Transport');
     return Promise.reject('Unable to claim interface of an uninitialized device!');
   }
 
@@ -347,14 +335,14 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     try {
       await endpoint.close();
     } catch (e) {
-      this.logger.warn('Failure while closing the device endpoint', 'Device API USB Transport');
+      Logger.warn('Failure while closing the device endpoint', 'Device API USB Transport');
       // Failing on closing on endpoint is ok
     }
     this._device = undefined;
   }
 
   async receive(): Promise<Buffer> {
-    this.logger.warn('Failure while closing the device endpoint', 'Device API USB Transport');
+    Logger.warn('Failure while closing the device endpoint', 'Device API USB Transport');
     throw new Error('Method not supported');
   }
 
@@ -388,7 +376,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     const expected = 'HLink v0';
     if (decodedMsg !== expected) {
       const message = `Hlink handshake has failed! Wrong version. Expected ${expected}, got ${decodedMsg}.`;
-      this.logger.warn(message);
+      Logger.warn(message);
       return Promise.reject(message);
     }
     return Promise.resolve();
