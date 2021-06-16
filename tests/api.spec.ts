@@ -29,12 +29,6 @@ const mockedDevices = [
   },
 ];
 
-const dummyLogger = {
-  warn: () => { },
-  info: () => { },
-  error: () => { }
-};
-
 const dummyDeviceDiscoveryManager = {
   registerForHotplugEvents: () => { },
   discoverCameras: () => { },
@@ -46,7 +40,6 @@ describe('HuddlyDeviceApiUSB', () => {
   let deviceApi: HuddlyDeviceAPIUSB;
   beforeEach(() => {
     deviceApi = new HuddlyDeviceAPIUSB({
-      logger: dummyLogger,
       manager: dummyDeviceDiscoveryManager
     });
   });
@@ -139,7 +132,6 @@ describe('HuddlyDeviceApiUSB', () => {
 
     it('should retry max attempt times ', async () => {
       deviceApi = new HuddlyDeviceAPIUSB({
-        logger: dummyLogger,
         manager: dummyDeviceDiscoveryManager,
         maxSearchRetries: 99,
       });
@@ -155,7 +147,6 @@ describe('HuddlyDeviceApiUSB', () => {
 
     it('should retry until found ', async () => {
       deviceApi = new HuddlyDeviceAPIUSB({
-        logger: dummyLogger,
         manager: dummyDeviceDiscoveryManager,
         alwaysRetry: true,
       });

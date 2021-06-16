@@ -9,15 +9,13 @@ import DeviceDiscoveryManager from './manager';
 import Logger from '@huddly/sdk/lib/src/utilitis/logger';
 
 export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
-  logger: any;
   eventEmitter: EventEmitter;
   deviceDiscoveryManager: DeviceDiscoveryManager;
   maxSearchRetries: Number;
   alwaysRetry: boolean;
 
   constructor(opts: DeviceApiOpts = {}) {
-    this.logger = opts.logger || new Logger(true);
-    this.deviceDiscoveryManager = opts.manager || new DeviceDiscoveryManager(this.logger);
+    this.deviceDiscoveryManager = opts.manager || new DeviceDiscoveryManager();
     this.maxSearchRetries = opts.maxSearchRetries || 10;
     this.alwaysRetry = opts.alwaysRetry || false;
   }
@@ -35,16 +33,16 @@ export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
 
   async getValidatedTransport(device): Promise<ITransport> {
     if (device.productId === 0x11 || device.productId === 3e9) {
-      this.logger.warn('HLink is not supported for this Huddly device', 'Device API USB');
+      Logger.warn('HLink is not supported for this Huddly device', 'Device API USB');
       return undefined;
     }
     try {
       const transport = await this.getTransport(device);
       await transport.performHlinkHandshake();
-      this.logger.info('Transport Protocol is Hlink', 'Device API USB');
+      Logger.info('Transport Protocol is Hlink', 'Device API USB');
       return transport;
     } catch (e) {
-      this.logger.error(
+      Logger.error(
         `HLink is not supported for device: ${device.serialNumber}`,
         e,
         'Device API USB'
@@ -62,7 +60,7 @@ export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
       i++;
     }
 
-    const transport = new NodeUsbTransport(usbDevice, this.logger);
+    const transport = new NodeUsbTransport(usbDevice);
     await transport.init();
     return transport;
   }

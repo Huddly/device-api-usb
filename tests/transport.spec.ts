@@ -12,14 +12,6 @@ chai.use(sinonChai);
 
 const MAX_PACKET_SIZE = (16 * 1024);
 
-const dummyLogger = {
-  warn: (msg: string, component: string) => { },
-  info: (msg: string, component: string) => { },
-  debug: (msg: string, component: string) => { },
-  error: (msg: string, stack: string, component: string) => { }
-};
-
-
 const createNewTransportInstance = () => new NodeUsbTransport({
   open: () => ({
     read: () => {},
@@ -29,7 +21,7 @@ const createNewTransportInstance = () => new NodeUsbTransport({
   close: () => { },
   onDetach: () => {},
   serial: 'Serial123',
-}, dummyLogger);
+});
 
 describe('UsbTransport', () => {
   let transport: NodeUsbTransport;
