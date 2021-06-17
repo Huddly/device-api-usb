@@ -4,7 +4,6 @@ import sinonChai from 'sinon-chai';
 import BulkUsb from './../src/bulkusbdevice';
 import DeviceDiscoveryManager from './../src/manager';
 import { EventEmitter } from 'events';
-import Logger from '@huddly/sdk/lib/src/utilitis/logger';
 import { doesNotReject } from 'assert';
 
 chai.should();
@@ -41,12 +40,11 @@ const mockedDevices = [
   }
 ];
 
-const dummyLogger = sinon.createStubInstance(Logger);
 
 describe('HuddlyUsbDeviceManager', () => {
   let devicemanager;
   beforeEach(() => {
-    devicemanager = new DeviceDiscoveryManager(dummyLogger);
+    devicemanager = new DeviceDiscoveryManager();
   });
 
   afterEach(() => {
