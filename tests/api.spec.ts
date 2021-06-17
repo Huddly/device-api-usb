@@ -23,6 +23,10 @@ const mockedDevices = [
     serialNumber: '534654324',
     productId: 0x11
   },
+  {
+    serialNumber: '534654324',
+    productId: 3e9
+  },
 ];
 
 const dummyLogger = {
@@ -72,6 +76,13 @@ describe('HuddlyDeviceApiUSB', () => {
         expect(transport).to.be.undefined;
       });
     });
+    describe('for huddly l1', () => {
+      it('should not support huddly l1 devices', async () => {
+        const transport = await deviceApi.getValidatedTransport(mockedDevices[3]);
+        expect(transport).to.be.undefined;
+      });
+    });
+
 
     describe('for boxfish', () => {
       let transportstub;
