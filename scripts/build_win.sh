@@ -13,9 +13,9 @@ export TRAVIS_TAG=$1
 export AZURE_CONTAINER="device-api-usb"
 
 prepare_node_env() {
-  if ! nvs use 12.4.0; then
-    nvs add 12.4.0
-    nvs use 12.4.0
+  if ! nvs use 16.4.0; then
+    nvs add 16.4.0
+    nvs use 16.4.0
   fi
 }
 
