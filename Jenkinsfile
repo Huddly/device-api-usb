@@ -15,7 +15,7 @@ pipeline {
   }
   environment {
     GIT_BRANCH = "${BRANCH_NAME}"
-    NODE_VERSION="12.4.0"
+    NODE_VERSION="14.17.3"
     RELEASE="${params.ReleaseBuild}"
   }
   stages {
