@@ -1,3 +1,41 @@
+### 0.3.0 (2021-08-16)
+
+##### Build System / Dependencies
+
+* **deps:**  bump jszip from 3.6.0 to 3.7.1 ([b5203724](https://github.com/Huddly/device-api-usb/commit/b5203724e76b251f7ea42a218302fef86d43d7e0))
+* **deps-dev:**  bump tar from 6.1.0 to 6.1.2 ([3708d33e](https://github.com/Huddly/device-api-usb/commit/3708d33ec11e165f39c60ff5c0bd0627f2ac23e8))
+* **windows bin:**  do only upload bin from win build since tar.gz is built and deployed by travis ([f6130982](https://github.com/Huddly/device-api-usb/commit/f6130982f9cee9cbb3783761ccf5b2f695e10db2))
+
+##### Chores
+
+*  bump @huddly/sdk to v0.6.0 ([1d856c13](https://github.com/Huddly/device-api-usb/commit/1d856c13063dbf6e4655741069751522917a0ce0))
+*  add support for node v14 (LTS) ([ce8b07a4](https://github.com/Huddly/device-api-usb/commit/ce8b07a4e8780e574534da9cd4ad177a37392777))
+* **package.json:**
+  *  prebuildify target bumped to electron version 7.1.2 ([bc2b15a3](https://github.com/Huddly/device-api-usb/commit/bc2b15a3a88211d40206be8f44ff90295a6d5501))
+  *  Add node 12 to napi node targets ([faa93c76](https://github.com/Huddly/device-api-usb/commit/faa93c760bb1b7108475cd18f44f6d6f7447fcb8))
+* **Node:**  Support for Node 12 LTS ([633d501b](https://github.com/Huddly/device-api-usb/commit/633d501bf8ada15b5d2ffe413fa1f4cae7507de4))
+
+##### New Features
+
+* **index:**  l1 camera does not support hlink transport ([662883ea](https://github.com/Huddly/device-api-usb/commit/662883ea9d935999953c5e69e5837fc04d02fe87))
+*  implement crash call to be able to quickly check if stacktraces are working ([1b8ba63f](https://github.com/Huddly/device-api-usb/commit/1b8ba63f57b2d9e99be451b426b662d48ee3c99c))
+
+##### Bug Fixes
+
+* **update dep:**
+  *  update npm deps ([b119d1fd](https://github.com/Huddly/device-api-usb/commit/b119d1fdf6b581e2498cb01103365a6debc89451))
+  *  update npm deps ([e852ffb3](https://github.com/Huddly/device-api-usb/commit/e852ffb3af947a2bd9200d6c5f6c2d715b2ee242))
+* **travis.yml:**  Fix the 2x2 matrix ([47a48844](https://github.com/Huddly/device-api-usb/commit/47a48844397520b88f819ccf1fb28c30eb639263))
+
+##### Other Changes
+
+*  audit dependencies ([13345e18](https://github.com/Huddly/device-api-usb/commit/13345e185f64239004248b6facb6fdee5eeb337b))
+*  Prevent destructor to run after uv loop have been destroyed ([7b67c006](https://github.com/Huddly/device-api-usb/commit/7b67c0066c441a39109cc2e84ea5dd52d6b3bf65))
+
+##### Refactors
+
+*  update code to use static methods of SDK Logger ([b178909e](https://github.com/Huddly/device-api-usb/commit/b178909e517c570e58da7599a51d364209389d29))
+
 #### 0.2.15 (2020-09-30)
 
 ##### Chores
