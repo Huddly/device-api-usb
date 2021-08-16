@@ -1,6 +1,6 @@
 {
   "name": "@huddly/device-api-usb",
-  "version": "0.2.16",
+  "version": "0.3.0",
   "description": "Huddly SDK device api which uses node-usb wrapper responsible for handling the transport layer of the communication and discovering the physical device/camera",
   "keywords": [
     "API",
