@@ -38,6 +38,7 @@
   "scripts": {
     "build": "npm run build-ts && npm run tslint && npm run napi",
     "build-ts": "tsc --declaration",
+    "prepublish-package": "node ./scripts/rmLibDir",
     "publish-package": "npm run build && npm run manifest && npm publish",
     "watch-ts": "tsc -w",
     "tslint": "tslint -c tslint.json -p tsconfig.json",
@@ -119,6 +120,7 @@
     "pre-commit": "^1.2.2",
     "prebuildify": "^4.1.2",
     "prettier": "^2.3.1",
+    "rimraf": "^3.0.2",
     "sinon": "^11.1.1",
     "sinon-chai": "^3.7.0",
     "source-map-support": "^0.5.19",
