@@ -96,7 +96,7 @@
     "url": "https://github.com/Huddly/device-api-usb/issues"
   },
   "dependencies": {
-    "@huddly/sdk": "^0.6.0",
+    "@huddly/sdk": "^0.6",
     "@types/node": "^15.12.2",
     "await-sleep": "0.0.1",
     "lodash.throttle": "^4.1.1",
