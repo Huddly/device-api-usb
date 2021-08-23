@@ -136,8 +136,7 @@ describe('BulkUsbDeviceSingleton', () => {
       });
       // Two list loops
       await sleep(251);
-      dummyCpp.listDevices.yields([
-      ]);
+      dummyCpp.listDevices.yields([]);
       await sleep(251);
       expect(detachSpy).to.have.been.calledOnce;
     });

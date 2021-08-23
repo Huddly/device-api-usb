@@ -7,6 +7,11 @@ import IDeviceDiscovery from '@huddly/sdk/lib/src/interfaces/iDeviceDiscovery';
 import DeviceApiOpts from '@huddly/sdk/lib/src/interfaces/IDeviceApiOpts';
 import DeviceDiscoveryManager from './manager';
 import Logger from '@huddly/sdk/lib/src/utilitis/logger';
+import {
+  HUDDLY_GO_PID,
+  HUDDLY_L1_PID,
+  HUDDLY_BASE_PID,
+} from '@huddly/sdk/lib/src/components/device/factory';
 
 export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
   eventEmitter: EventEmitter;
@@ -32,8 +37,11 @@ export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
   }
 
   async getValidatedTransport(device): Promise<ITransport> {
-    if (device.productId === 0x11 || device.productId === 3e9) {
-      Logger.warn('HLink is not supported for this Huddly device', 'Device API USB');
+    if ([HUDDLY_GO_PID, HUDDLY_L1_PID, HUDDLY_BASE_PID].includes(device.productId)) {
+      Logger.warn(
+        `HLink is not supported for Huddly device with PID ${device.productId}`,
+        'Device API USB'
+      );
       return undefined;
     }
     try {
