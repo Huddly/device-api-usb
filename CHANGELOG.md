@@ -1,3 +1,13 @@
+#### 0.3.1 (2021-08-25)
+
+##### Chores
+
+*  bump sdk version to 0.6.1 ([f29ec021](https://github.com/Huddly/device-api-usb/commit/f29ec0215f69812a168d92f03f804e6d1ef59a03))
+
+##### Bug Fixes
+
+*  Handle Huddly BASE devices properly ([fc26aaa1](https://github.com/Huddly/device-api-usb/commit/fc26aaa15322558bc7f7600cbbd310a323a80c5b))
+
 ### 0.3.0 (2021-08-16)
 
 ##### Build System / Dependencies
