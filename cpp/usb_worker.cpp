@@ -109,10 +109,14 @@ static std::string maybe_get_string(libusb::Device & dev, uint8_t usbDescriptorI
     auto devh = std::get<libusb::Open_device>(std::move(maybe_devh));
     auto maybe_string = devh.get_string_descriptor(usbDescriptorIndex);
     if (std::holds_alternative<libusb::Error>(maybe_string)) {
-
         auto err = std::get<libusb::Error>(maybe_string);
-        std::cerr << "Error getting string descriptor: " << err.get_message() << " | Requested DescriptorIdx: " << unsigned(usbDescriptorIndex) << std::endl;
-        return err.get_message();
+        if (retry == 0 && usbDescriptorIndex == 0) {
+            // Report error when we have used up all the retry steps
+            std::cerr << "Error getting string descriptor: " << err.get_message() << " | Requested DescriptorIdx: " << unsigned(usbDescriptorIndex) << std::endl;
+            return err.get_message();
+        }
+
+        return "";
     }
     return std::get<std::string>(std::move(maybe_string));
 }
