@@ -85,7 +85,7 @@ struct ReturnItem : public QueueItem {
     std::function<void(void)> const cb;
 };
 
-static std::string maybe_get_string(libusb::Device & dev, uint8_t string, int retry=3) {
+static std::string maybe_get_string(libusb::Device & dev, uint8_t usbDescriptorIndex, int retry=3) {
     auto maybe_devh = dev.open(true);
     if (std::holds_alternative<libusb::Error>(maybe_devh)) {
         auto err = std::get<libusb::Error>(maybe_devh);
@@ -99,7 +99,7 @@ static std::string maybe_get_string(libusb::Device & dev, uint8_t string, int re
                 return err.get_message();
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(500/retry));
-            return maybe_get_string(dev, string, retry - 1);
+            return maybe_get_string(dev, usbDescriptorIndex, retry - 1);
         default:
             std::cerr << "Error opening device for string descriptor: " << err.get_message() << std::endl;
             break;
@@ -107,11 +107,12 @@ static std::string maybe_get_string(libusb::Device & dev, uint8_t string, int re
         return err.get_message();
     }
     auto devh = std::get<libusb::Open_device>(std::move(maybe_devh));
-    auto maybe_string = devh.get_string_descriptor(string);
+    auto maybe_string = devh.get_string_descriptor(usbDescriptorIndex);
     if (std::holds_alternative<libusb::Error>(maybe_string)) {
+
         auto err = std::get<libusb::Error>(maybe_string);
-        std::cerr << "Error getting string descriptor: " << err.get_message() << std::endl;
-        return "";
+        std::cerr << "Error getting string descriptor: " << err.get_message() << " | Requested DescriptorIdx: " << unsigned(usbDescriptorIndex) << std::endl;
+        return err.get_message();
     }
     return std::get<std::string>(std::move(maybe_string));
 }
