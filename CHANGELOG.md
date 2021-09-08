@@ -1,3 +1,10 @@
+#### 0.3.2 (2021-09-08)
+
+##### Other Changes
+
+*  print err when retries are drained ([8d735e25](https://github.com/Huddly/device-api-usb/commit/8d735e25d683d9752653e0b509eac1c38eb0ff33))
+*  Print out usb descriptor index ([b2a31129](https://github.com/Huddly/device-api-usb/commit/b2a311296449dccc2b9c08cd081d8f179f83319c))
+
 #### 0.3.1 (2021-08-25)
 
 ##### Chores
