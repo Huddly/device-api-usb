@@ -1,9 +1,11 @@
-import ITransport from '@huddly/sdk/lib/src/interfaces/iTransport';
-import Logger from '@huddly/sdk/lib/src/utilitis/logger';
-import DeviceEndpoint from './bulkusbendpoint';
-import MessagePacket from './messagepacket';
 import { EventEmitter } from 'events';
 import throttle from 'lodash.throttle';
+
+import ITransport from '@huddly/sdk-interfaces/lib/interfaces/ITransport';
+import Logger from '@huddly/sdk-interfaces/lib/statics/Logger';
+
+import DeviceEndpoint from './bulkusbendpoint';
+import MessagePacket from './messagepacket';
 
 const MAX_USB_PACKET = 16 * 1024;
 

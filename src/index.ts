@@ -1,17 +1,14 @@
-import IHuddlyDeviceAPI from '@huddly/sdk/lib/src/interfaces/iHuddlyDeviceAPI';
+import IHuddlyDeviceAPI from '@huddly/sdk-interfaces/lib/interfaces/IHuddlyDeviceAPI';
+import IUVCControlAPI from '@huddly/sdk-interfaces/lib/interfaces/IUVCControlApi';
+import ITransport from '@huddly/sdk-interfaces/lib/interfaces/ITransport';
+import IDeviceDiscovery from '@huddly/sdk-interfaces/lib/interfaces/IDeviceDiscovery';
+import DeviceApiOpts from '@huddly/sdk-interfaces/lib/interfaces/IDeviceApiOpts';
+import HuddlyHEX from '@huddly/sdk-interfaces/lib/enums/HuddlyHex';
+import Logger from '@huddly/sdk-interfaces/lib/statics/Logger';
+
 import NodeUsbTransport from './transport';
 import { EventEmitter } from 'events';
-import IUVCControlAPI from '@huddly/sdk/lib/src/interfaces/iUVCControlApi';
-import ITransport from '@huddly/sdk/lib/src/interfaces/iTransport';
-import IDeviceDiscovery from '@huddly/sdk/lib/src/interfaces/iDeviceDiscovery';
-import DeviceApiOpts from '@huddly/sdk/lib/src/interfaces/IDeviceApiOpts';
 import DeviceDiscoveryManager from './manager';
-import Logger from '@huddly/sdk/lib/src/utilitis/logger';
-import {
-  HUDDLY_GO_PID,
-  HUDDLY_L1_PID,
-  HUDDLY_BASE_PID,
-} from '@huddly/sdk/lib/src/components/device/factory';
 
 export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
   eventEmitter: EventEmitter;
@@ -37,7 +34,7 @@ export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
   }
 
   async getValidatedTransport(device): Promise<ITransport> {
-    if ([HUDDLY_GO_PID, HUDDLY_L1_PID, HUDDLY_BASE_PID].includes(device.productId)) {
+    if ([HuddlyHEX.GO_PID, HuddlyHEX.L1_PID, HuddlyHEX.BASE_PID].includes(device.productId)) {
       Logger.warn(
         `HLink is not supported for Huddly device with PID ${device.productId}`,
         'Device API USB'
