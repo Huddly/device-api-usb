@@ -1,8 +1,9 @@
 import BulkUsb, { BulkUsbDevice } from './bulkusbdevice';
 import EventEmitter from 'events';
-import IDeviceDiscovery from '@huddly/sdk/lib/src/interfaces/iDeviceDiscovery';
-import Logger from '@huddly/sdk/lib/src/utilitis/logger';
-import { HUDDLY_VID } from '@huddly/sdk/lib/src/components/device/factory';
+
+import IDeviceDiscovery from '@huddly/sdk-interfaces/lib/interfaces/IDeviceDiscovery';
+import HuddlyHEX from '@huddly/sdk-interfaces/lib/enums/HuddlyHex';
+import Logger from '@huddly/sdk-interfaces/lib/statics/Logger';
 
 export default class DeviceDiscoveryManager implements IDeviceDiscovery {
   private attachedDevices: Array<any> = [];
@@ -31,7 +32,7 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
   discoverCameras(): void {}
 
   private deviceAttached(attachedDevice): void {
-    if (attachedDevice.vid !== HUDDLY_VID) {
+    if (attachedDevice.vid !== HuddlyHEX.VID) {
       return;
     }
     const newDevice = this.getDeviceObject(attachedDevice);
@@ -42,7 +43,7 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
   }
 
   private deviceDetached(removedDevice): void {
-    if (removedDevice.vid !== HUDDLY_VID) {
+    if (removedDevice.vid !== HuddlyHEX.VID) {
       return;
     }
     this.attachedDevices = this.attachedDevices.filter((d) => !removedDevice.equals(d));

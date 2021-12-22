@@ -1,10 +1,12 @@
 import sinon from 'sinon';
 import chai, { expect } from 'chai';
 import sinonChai from 'sinon-chai';
+import { EventEmitter } from 'events';
+
+import HuddlyHEX from '@huddly/sdk-interfaces/lib/enums/HuddlyHex';
+
 import BulkUsb from './../src/bulkusbdevice';
 import DeviceDiscoveryManager from './../src/manager';
-import { EventEmitter } from 'events';
-import { HUDDLY_VID } from '@huddly/sdk/lib/src/components/device/factory';
 
 chai.should();
 chai.use(sinonChai);
@@ -150,7 +152,7 @@ describe('HuddlyUsbDeviceManager', () => {
         done();
       });
       devicemanager.registerForHotplugEvents(emitter);
-      attachStub.callArgWith(0, { id: '123', serialNumber: 'SRL123', pid: 0x21, vid: HUDDLY_VID, onDetach: () => {}});
+      attachStub.callArgWith(0, { id: '123', serialNumber: 'SRL123', pid: 0x21, vid: HuddlyHEX.VID, onDetach: () => {}});
     });
 
     it('should fire detach events for all undiscovered cached cameras', (done) => {
@@ -159,8 +161,8 @@ describe('HuddlyUsbDeviceManager', () => {
         done();
       });
       devicemanager.registerForHotplugEvents(emitter);
-      attachStub.callArgWith(0, { id: '123', serialNumber: 'SRL123', pid: 0x21, vid: HUDDLY_VID, onDetach: (cb) => {
-        cb({ id: '456', serialNumber: 'SRL456', pid: 0x21, vid: HUDDLY_VID });
+      attachStub.callArgWith(0, { id: '123', serialNumber: 'SRL123', pid: 0x21, vid: HuddlyHEX.VID, onDetach: (cb) => {
+        cb({ id: '456', serialNumber: 'SRL456', pid: 0x21, vid: HuddlyHEX.VID });
       }});
 
     });
@@ -173,7 +175,7 @@ describe('HuddlyUsbDeviceManager', () => {
       * This device will serve as a detached device.
       */
       listDeviceStub = sinon.stub(BulkUsb, 'listDevices').resolves([
-        { id: '123', serialNumber: 'SRL123', pid: 0x21, vid: HUDDLY_VID, onDetach: (cb) => {} },
+        { id: '123', serialNumber: 'SRL123', pid: 0x21, vid: HuddlyHEX.VID, onDetach: (cb) => {} },
       ]);
     });
 

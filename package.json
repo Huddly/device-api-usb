@@ -96,7 +96,7 @@
     "url": "https://github.com/Huddly/device-api-usb/issues"
   },
   "dependencies": {
-    "@huddly/sdk": "^0.6",
+    "@huddly/sdk-interfaces": "^0.1.1",
     "@types/node": "^15.12.2",
     "await-sleep": "0.0.1",
     "lodash.throttle": "^4.1.1",
@@ -106,14 +106,12 @@
   },
   "devDependencies": {
     "@types/mocha": "^8.2.2",
-    "azure-storage": "^2.10.4",
+    "azure-storage": "^2.10.6",
     "chai": "^4.3.4",
     "chai-as-promised": "^7.1.1",
     "chai-things": "^0.2.0",
     "copyfiles": "^2.4.1",
     "cross-env": "^7.0.3",
-    "cz-conventional-changelog": "^3.3.0",
-    "generate-changelog": "^1.8.0",
     "mocha": "^9.0.0",
     "node-gyp": "^7.1.2",
     "nyc": "^15.1.0",
@@ -127,10 +125,5 @@
     "tar": "^6.1.0",
     "ts-node": "^10.0.0",
     "tslint": "^6.1.1"
-  },
-  "config": {
-    "commitizen": {
-      "path": "./node_modules/cz-conventional-changelog"
-    }
   }
 }
