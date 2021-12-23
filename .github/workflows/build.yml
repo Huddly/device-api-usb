@@ -20,15 +20,22 @@ jobs:
       matrix:
         os: [
           ubuntu-latest,
-          macos-latest
+          macos-latest,
+          windows-latest
         ]
         node-version: [
-          11,
-          12,
+          # 11,
+          # 12,
           14
         ]
 
     steps:
+      - name: Set git to use LF
+        if: matrix.os == 'windows-latest'
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+
       - name: Checkout repo and submodules
         uses: actions/checkout@v2
         with:
@@ -43,12 +50,34 @@ jobs:
           sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 60
           sudo apt install libudev-dev
 
+      - name: "Install python2.7 on windows"
+        if: matrix.os == 'windows-latest'
+        uses: actions/setup-python@v2
+        with:
+          python-version: 2.7
+
       - uses: actions/setup-node@v2
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
 
-      - run: npm ci
-      - run: npm run build
-      - run: npm run tslint
-      - run: npm run prettier-check
+      - name: "Build & Test (Windows)"
+        if: matrix.os == 'windows-latest'
+        run: |
+          npm --add-python-to-path='true' --debug --global --production windows-build-tools
+          npm ci
+          npm run tslint
+          npm run prettier-check
+          npm run napi-64
+          npm run napi-32
+
+      - name: "Build & Test (OSX & Linux)"
+        if: matrix.os != 'windows-latest'
+        run: |
+          npm ci
+          npm run tslint
+          npm run prettier-check
+          npm run build
+          npm test
+
+      # Todo: Upload binaries
