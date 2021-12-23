@@ -1,0 +1,54 @@
+# This workflow will run build the typescript source files, run linter and prettier
+name: CI Check
+
+on:
+  # Trigger the workflow on push or pull request,
+  # but only for the main branch
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - '*'
+
+jobs:
+  build:
+    name: "Build & Test"
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [
+          ubuntu-latest,
+          macos-latest
+        ]
+        node-version: [
+          11,
+          12,
+          14
+        ]
+
+    steps:
+      - name: Checkout repo and submodules
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: "Pre-Install hook Ubuntu"
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+          sudo apt update
+          sudo apt install -y gcc-8 g++-8
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 60
+          sudo apt install libudev-dev
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - run: npm ci
+      - run: npm run build
+      - run: npm run tslint
+      - run: npm run prettier-check
