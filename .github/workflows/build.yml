@@ -43,6 +43,16 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Set env
+        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+
+      - name: Test
+        env:
+          TAG: ${{ env.RELEASE_VERSION }}
+        shell: bash
+        run: |
+          echo "Tag is ${TAG}"
+
       - name: "Pre-Install hook Ubuntu"
         if: matrix.os == 'ubuntu-latest'
         run: |
