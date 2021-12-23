@@ -7,6 +7,8 @@ on:
   push:
     branches:
       - master
+    tags:
+      - 'v*.*.*'
   pull_request:
     branches:
       - '*'
@@ -28,6 +30,10 @@ jobs:
           # 12,
           14
         ]
+    env:
+      AZURE_CONTAINER: ${{ secrets.AZURE_CONTAINER }}
+      AZURE_STORAGE_ACCOUNT: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
+      AZURE_STORAGE_ACCESS_KEY: ${{ secrets.AZURE_STORAGE_ACCESS_KEY }}
 
     steps:
       - name: Set git to use LF
@@ -80,4 +86,31 @@ jobs:
           npm run build
           npm test
 
-      # Todo: Upload binaries
+      - name: "Extract and export RELEASE_VERSION"
+        if: success() && startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          export REF="${{github.ref}}"
+          echo "RELEASE_VERSION=${REF#refs/*/}" >> $GITHUB_ENV
+
+      - name: "Extract and export GITSHA"
+        if: success()
+        shell: bash
+        run: |
+          export GITSHA=$(git log --pretty=format:'%H' -n 1 .)
+          echo "GITSHA=${GITSHA}" >> $GITHUB_ENV
+
+      - name: "Upload Binaries to azure"
+        if: success() && matrix.os == 'windows-latest'
+        env:
+          TAG: ${{ env.RELEASE_VERSION }}
+          GITSHA: ${{ env.GITSHA }}
+        shell: bash
+        run: npm run upload-binaries
+
+      - name: "Upload Binaries to azure"
+        if: success() && matrix.os != 'windows-latest'
+        env:
+          TAG: ${{ env.RELEASE_VERSION }}
+          GITSHA: ${{ env.GITSHA }}
+        run: npm run upload-build
