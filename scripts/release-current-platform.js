@@ -36,7 +36,7 @@ switch (platform) {
 const filesToSend = [];
 
 const version = pkg.version;
-const sha = (!process.env.TRAVIS_TAG || process.env.TRAVIS_TAG === 'false') ? process.env.TRAVIS_COMMIT : '';
+const sha = (!process.env.RELEASE_VERSION || process.env.RELEASE_VERSION === 'false') ? process.env.GITSHA : '';
 const builtVersions = pkg.binary.builtVersions;
 
 const destName = `device-api-usb-prod-${version + sha}`;

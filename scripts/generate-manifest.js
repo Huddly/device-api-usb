@@ -25,7 +25,7 @@ function createManifestFile(destDir, production = false, gitsha = undefined) {
       tag: pkg.version,
     }
   } else {
-    const tag = (!process.env.TRAVIS_TAG || process.env.TRAVIS_TAG === 'false') ? '' : process.env.TRAVIS_TAG;
+    const tag = (!process.env.RELEASE_VERSION || process.env.RELEASE_VERSION === 'false') ? '' : process.env.RELEASE_VERSION;
     manifestContent = {
       tag,
       gitsha,
