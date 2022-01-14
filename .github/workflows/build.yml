@@ -26,8 +26,8 @@ jobs:
           windows-latest
         ]
         node-version: [
-          # 11,
-          # 12,
+          11,
+          12,
           14
         ]
     env:
