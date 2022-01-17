@@ -1,3 +1,26 @@
+#### 0.3.3 (2022-01-17)
+
+##### Continuous Integration
+
+*  upload binaries with github actions ([e8b48145](https://github.com/Huddly/device-api-usb/commit/e8b481454a3873756251f90726d84abb09f8e722))
+*  build windows with github actions as well ([d3f48347](https://github.com/Huddly/device-api-usb/commit/d3f4834704ae5431290549361d4ea4e714c8adb3))
+
+##### New Features
+
+*  replace travis with github actions ([472f0a9e](https://github.com/Huddly/device-api-usb/commit/472f0a9e0616cbedc191d213d9ed6a213a1981e3))
+
+##### Other Changes
+
+* **build:**
+  *  Ubuntu 18.04 instead of latest ([db143d1a](https://github.com/Huddly/device-api-usb/commit/db143d1a43f781d06e41ab22158740e1f87fbac7))
+  *  Build for node v11 & v12 ([ee12c6df](https://github.com/Huddly/device-api-usb/commit/ee12c6df0c5eb661618a5674c7c0e5959531cdc7))
+*  npm registry url should be https ([5b5526ad](https://github.com/Huddly/device-api-usb/commit/5b5526ad72990439018d3bb774a84f0f8a3d1d2b))
+
+##### Refactors
+
+*  Build win binaries with githubactions ([caf527f9](https://github.com/Huddly/device-api-usb/commit/caf527f9ce88e5b77479b0168a3647d36ef306e3))
+*  Use @huddly/sdk-interfaces ([ba7819d8](https://github.com/Huddly/device-api-usb/commit/ba7819d85eecd481abf03a90323a7e3218f51fbe))
+
 #### 0.3.2 (2021-09-08)
 
 ##### Other Changes
