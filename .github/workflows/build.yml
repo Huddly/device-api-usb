@@ -85,6 +85,7 @@ jobs:
           npm run prettier-check
           npm run build
           npm test
+          npm run audit-check
 
       - name: "Extract and export RELEASE_VERSION"
         if: success() && startsWith(github.ref, 'refs/tags/v')
