@@ -99,6 +99,7 @@
     "@huddly/sdk-interfaces": "^0.1.1",
     "@types/node": "^15.12.2",
     "await-sleep": "0.0.1",
+    "chalk": "^4.1.2",
     "lodash.throttle": "^4.1.1",
     "node-addon-api": "^1.7.2",
     "node-gyp-build": "^4.2.3",
