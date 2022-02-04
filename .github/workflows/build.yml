@@ -31,7 +31,8 @@ jobs:
         node-version: [
           11,
           12,
-          14
+          14,
+          16
         ]
     env:
       AZURE_CONTAINER: ${{ secrets.AZURE_CONTAINER }}
