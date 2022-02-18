@@ -1,3 +1,30 @@
+#### 0.3.4 (2022-02-18)
+
+##### Build System / Dependencies
+
+* **gh-actions:**  Custom build cmd for win node 11&12 ([7d582b3b](https://github.com/Huddly/device-api-usb/commit/7d582b3ba09fa4e1d6e28414b851b08d32eb0195))
+
+##### Chores
+
+*  Remove support for electron 3 & 4 for future release ([b2595303](https://github.com/Huddly/device-api-usb/commit/b25953037705093fc15efd4ccbeaa57d2cf8f87a))
+*  Build for node 16 ([ec21a2f7](https://github.com/Huddly/device-api-usb/commit/ec21a2f798932adf8fc69afa56b8322fb0b76f31))
+*  fix npm dependency vulnerabilities ([5dd9a887](https://github.com/Huddly/device-api-usb/commit/5dd9a887f89b3bac8d959852bb0bb811ace0fca0))
+
+##### New Features
+
+*  Slack notify when build fails (master) ([91fa3bab](https://github.com/Huddly/device-api-usb/commit/91fa3bab08bbb7ab4f28c660099e5ea013d7e278))
+*  Cron trigger master branch (Mon-Fri @ 0700) ([26e6f1f4](https://github.com/Huddly/device-api-usb/commit/26e6f1f440675a7369d64e4816d455a135af88f4))
+*  Allow audit check to have a whitelist ([214ef6f8](https://github.com/Huddly/device-api-usb/commit/214ef6f876bbbfaff3a09f6010095a7abcd7daac))
+*  Introduce dependency audit-check ([ab09a958](https://github.com/Huddly/device-api-usb/commit/ab09a958be472e06f35256237867ac8f22d72a68))
+
+##### Bug Fixes
+
+* **checkVulnerabilities:**  Validate data before usage ([22af4c75](https://github.com/Huddly/device-api-usb/commit/22af4c752729af37762b0472f06a762fec0b1966))
+
+##### Tests
+
+*  Install chalk-js for terminal styling ([4b62328a](https://github.com/Huddly/device-api-usb/commit/4b62328a16caf22fd58eda598fddce625a3b72dd))
+
 #### 0.3.3 (2022-01-17)
 
 ##### Continuous Integration
