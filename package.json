@@ -50,6 +50,7 @@
     "upload-build": "node scripts/release-current-platform",
     "upload-binaries": "cross-env SKIP_TAR=true node scripts/release-current-platform",
     "install": "echo 'install without build'",
+    "prepare": "npm run build-ts",
     "postinstall": "node scripts/download-binaries.js",
     "preversion": "npm run tslint",
     "prettier": "./node_modules/.bin/prettier  --config ./.prettierrc --write src/**/*.ts",
