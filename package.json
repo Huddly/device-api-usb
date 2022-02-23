@@ -51,7 +51,6 @@
     "upload-binaries": "cross-env SKIP_TAR=true node scripts/release-current-platform",
     "install": "echo 'install without build'",
     "postinstall": "node scripts/download-binaries.js",
-    "prepare": "npm run build-ts",
     "preversion": "npm run tslint",
     "prettier": "./node_modules/.bin/prettier  --config ./.prettierrc --write src/**/*.ts",
     "prettier-check": "./node_modules/.bin/prettier  --config ./.prettierrc --check src/**/*.ts",
@@ -104,7 +103,8 @@
     "lodash.throttle": "^4.1.1",
     "node-addon-api": "^1.7.2",
     "node-gyp-build": "^4.2.3",
-    "typescript": "^4.3.2"
+    "typescript": "^4.3.2",
+    "usb": "^2.1.2"
   },
   "devDependencies": {
     "@types/mocha": "^8.2.2",

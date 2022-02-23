@@ -1,4 +1,4 @@
-class Message {
+export class Message {
   message: string;
   messageSize: number;
   payload: Buffer;
