@@ -63,7 +63,7 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
           console.warn('Usb device is occupied by a different process!');
           return resolve(false);
         }
-        
+
         Logger.warn(`Unable to fetch device parameters from usb descriptor! ${e}`);
         reject(`Unable to fetch device parameters from usb descriptor! ${e}`);
       }

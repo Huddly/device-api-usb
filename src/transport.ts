@@ -2,32 +2,11 @@ import { EventEmitter } from 'events';
 import { usb } from 'usb';
 import { Endpoint, InEndpoint, OutEndpoint } from 'usb/dist/usb/endpoint';
 import { Interface } from 'usb/dist/usb/interface';
-import throttle from 'lodash.throttle';
 
 import ITransport from '@huddly/sdk-interfaces/lib/interfaces/ITransport';
 import Logger from '@huddly/sdk-interfaces/lib/statics/Logger';
 
 import MessagePacket, { Message } from './messagepacket';
-
-const MAX_USB_PACKET = 16 * 1024;
-
-const READ_TRANSFER_TIMEOUT_MS = 100;
-const HEADER_TIMEOUT_MS = 100;
-const MAX_LOG_ERROR_WRITE_MS = 100;
-
-function CeilDiv(a, b) {
-  return Math.ceil(a / b);
-}
-
-function AlignUp(length, alignment) {
-  return alignment * CeilDiv(length, alignment);
-}
-
-interface SendMessage {
-  resolve(message?: any): void;
-  reject(message: any): void;
-  msgBuffer: Buffer;
-}
 
 export default class NodeUsbTransport extends EventEmitter implements ITransport {
   private readonly MAX_PACKET_SIZE: number = 16 * 1024;
@@ -109,7 +88,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
 
   async handleResetSeqRead(): Promise<void> {
     await this.stopEventLoop();
-    this.close();
+    await this.close();
     this.emit('TRANSPORT_RESET');
   }
 
@@ -175,18 +154,26 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     });
   }
 
+  async stopUsbEndpointPoll(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.inEndpoint.stopPoll(() => {
+        this.running = false;
+        resolve();
+      });
+      this.inEndpoint.once('error', (error: any) => {
+        Logger.error('Unable to stop poll!', error, 'Device-API_USB Transport');
+        reject(error);
+      });
+    })
+  }
+
   async stopEventLoop(): Promise<void> {
     return new Promise((resolve, reject) => {
       this.removeAllListeners();
       if (this.running) {
-        this.inEndpoint.stopPoll(() => {
-          this.running = false;
-          resolve();
-        });
-        this.inEndpoint.once('error', (error: any) => {
-          Logger.error('Unable to stop poll!', error, 'Device-API_USB Transport');
-          reject(error);
-        });
+        this.stopUsbEndpointPoll()
+        .then(_ => resolve())
+        .catch(e => reject(e));
       } else {
         resolve();
       }
@@ -211,24 +198,6 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
   removeAllListeners(eventName?: string): this {
     super.removeAllListeners(eventName);
     return this;
-  }
-
-  /**
-   * This method is no longer supported! Legacy.
-   *
-   * @memberof NodeUsbTransport
-   */
-  read(receiveMsg: string = 'unknown', timeout: number = 500): Promise<any> {
-    throw new Error('Method no longer supported!');
-  }
-
-  /**
-   * This method is no longer supported! Legacy.
-   *
-   * @memberof NodeUsbTransport
-   */
-  async receive(): Promise<Buffer> {
-    throw new Error('Depricated Method!');
   }
 
   receiveMessage(msg: string, timeout: number = 500): Promise<any> {
@@ -258,9 +227,86 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     });
   }
 
+  /**
+   * This method is no longer supported! Legacy.
+   *
+   * @memberof NodeUsbTransport
+   */
+   read(receiveMsg: string = 'unknown', timeout: number = 500): Promise<any> {
+    throw new Error('Method no longer supported!');
+  }
+
+  write(cmd: string, payload: any = Buffer.alloc(0)): Promise<any> {
+    const encodedMsgBuffer: Buffer = MessagePacket.createMessage(cmd, payload);
+    return this.transfer(encodedMsgBuffer);
+  }
+
+  subscribe(command: string): Promise<any> {
+    return this.write('hlink-mb-subscribe', command);
+  }
+
+  unsubscribe(command: string): Promise<any> {
+    return this.write('hlink-mb-unsubscribe', command);
+  }
+
+  async releaseEndpoints(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (this.vscInterface) {
+        this.stopUsbEndpointPoll()
+        .then(() => {
+          this.vscInterface.release(true, (err: usb.LibUSBException) => {
+            if (err) return reject(`Unable to release vsc interface! Error: ${err.name}`);
+            resolve();
+          });
+        })
+        .catch(e => reject(e));
+      } else {
+        resolve();
+      }
+    });
+  }
+
+  /**
+   * This method is no longer supported! Legacy.
+   *
+   * @memberof NodeUsbTransport
+   */
+   async receive(): Promise<Buffer> {
+    throw new Error('Depricated Method!');
+  }
+
+  async transfer(messageBuffer: Buffer) {
+    for (let i = 0; i < messageBuffer.length; i += this.MAX_PACKET_SIZE) {
+      const chunk = messageBuffer.slice(i, i + this.MAX_PACKET_SIZE);
+      await this.sendChunk(chunk);
+    }
+  }
+
+  async readChunk(packetSize: number = this.MAX_PACKET_SIZE): Promise<any> {
+    if (!this.inEndpoint) return Promise.reject('Device inEndpoint not initialized!');
+
+    return new Promise((resolve, reject) => {
+      this.inEndpoint.transfer(packetSize, (err: usb.LibUSBException, data: Buffer) => {
+        if (err) return reject(`Unable to read data from device! Error: ${err.name}`);
+        resolve(data);
+      });
+    });
+  }
+
+  async sendChunk(chunk: Buffer): Promise<void> {
+    if (!this.outEndpoint) return Promise.reject('Device outEndpoint not initialized!');
+
+    return new Promise((resolve, reject) => {
+      this.outEndpoint.transfer(chunk, (err: usb.LibUSBException, dataSent: number) => {
+        if (err) return reject(`Unable to write data to device! Error: ${err.name}`);
+        resolve();
+      });
+    });
+  }
 
   async close(): Promise<any> {
     if (this.device) {
+      await this.releaseEndpoints();
       this.device.close();
       this.device = undefined;
     }
