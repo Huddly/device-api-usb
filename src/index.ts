@@ -9,6 +9,7 @@ import Logger from '@huddly/sdk-interfaces/lib/statics/Logger';
 import NodeUsbTransport from './transport';
 import { EventEmitter } from 'events';
 import DeviceDiscoveryManager from './manager';
+import { usb } from 'usb';
 
 export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
   eventEmitter: EventEmitter;
@@ -22,7 +23,9 @@ export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
     this.alwaysRetry = opts.alwaysRetry || false;
   }
 
-  async initialize() {}
+  async initialize() {
+    this.deviceDiscoveryManager.deviceList(true);
+  }
 
   registerForHotplugEvents(eventEmitter: EventEmitter): void {
     this.eventEmitter = eventEmitter;
@@ -56,16 +59,8 @@ export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
     }
   }
 
-  async getTransport(device): Promise<NodeUsbTransport> {
-    let usbDevice;
-
-    let i = 0;
-    while ((this.alwaysRetry || i < this.maxSearchRetries) && !usbDevice) {
-      usbDevice = await this.deviceDiscoveryManager.getDevice(device.serialNumber);
-      i++;
-    }
-
-    const transport = new NodeUsbTransport(usbDevice);
+  async getTransport(device: usb.Device): Promise<NodeUsbTransport> {
+    const transport = new NodeUsbTransport(device);
     await transport.init();
     return transport;
   }

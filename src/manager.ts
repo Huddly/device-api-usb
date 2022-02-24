@@ -70,7 +70,7 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
     });
   }
 
-  private printAttachedDevices(): void {
+  printAttachedDevices(): void {
     console.group('Attached Devices')
     if (this.attachedDevices.length === 0) {
       console.log('[]');
@@ -80,12 +80,10 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
   }
   private newDeviceAttached(device: UsbDevice): void {
     this.attachedDevices.push(device);
-    this.printAttachedDevices();
   }
 
   private newDeviceDetached(detachedDev: UsbDevice): void {
     this.attachedDevices = this.attachedDevices.filter((device: UsbDevice) => device.id !== detachedDev.id);
-    this.printAttachedDevices();
   }
 
   private isDeviceWithUUIDCached(uuid: string): boolean {
@@ -111,7 +109,7 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
     });
   }
 
-  async deviceList(): Promise<usb.Device[]> {
+  async deviceList(doEmitNewDevices: boolean = false): Promise<usb.Device[]> {
     const usbDevices: usb.Device[] = getDeviceList();
     const devices: usb.Device[] = usbDevices.filter((dev: usb.Device) => dev.deviceDescriptor.idVendor === HuddlyHEX.VID);
     let elidgableDevices: usb.Device[] = [];
@@ -121,6 +119,9 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
         this.newDeviceAttached(devices[idx] as unknown as UsbDevice);
         // We assume that the device "Detach" event will take care of clearing up the device cache list
         elidgableDevices.push(devices[idx]);
+        if (doEmitNewDevices) {
+          this.eventEmitter.emit('ATTACH', devices[idx]);
+        }
       }
     }
     return elidgableDevices;

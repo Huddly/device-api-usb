@@ -36,7 +36,7 @@
     "url": "git+https://github.com/Huddly/device-api-usb.git"
   },
   "scripts": {
-    "build": "npm run build-ts && npm run tslint && npm run napi",
+    "build": "npm run build-ts && npm run tslint",
     "build-ts": "tsc --declaration",
     "prepublish-package": "node ./scripts/rmLibDir",
     "publish-package": "npm run build && npm run manifest && npm publish",
@@ -44,9 +44,6 @@
     "tslint": "tslint -c tslint.json -p tsconfig.json",
     "test": "nyc mocha -r ts-node/register --recursive \"tests/**/*.spec.ts\" --exit",
     "test-js": "mocha -r ts-node/register --recursive \"lib/tests/**/*.spec.js\"",
-    "napi": "prebuildify --napi --debug --verbose --target=node@10.12.0 --target=node@12.4.0 --target=node@14.17.3 --target=node@16.13.2 --target=electron@11.2.1",
-    "napi-64": "prebuildify --napi --debug --verbose --target=node@10.12.0 --target=node@12.4.0 --target=node@14.17.3 --target=node@16.13.2 --target=electron@11.2.1 --arch=x64",
-    "napi-32": "prebuildify --napi --debug --verbose --target=node@10.12.0 --target=node@12.4.0 --target=node@14.17.3 --target=node@16.13.2 --target=electron@11.2.1 --arch=ia32",
     "upload-build": "node scripts/release-current-platform",
     "upload-binaries": "cross-env SKIP_TAR=true node scripts/release-current-platform",
     "install": "echo 'install without build'",
@@ -102,8 +99,6 @@
     "await-sleep": "0.0.1",
     "chalk": "^4.1.2",
     "lodash.throttle": "^4.1.1",
-    "node-addon-api": "^1.7.2",
-    "node-gyp-build": "^4.2.3",
     "typescript": "^4.3.2",
     "usb": "^2.1.2"
   },
@@ -116,10 +111,8 @@
     "copyfiles": "^2.4.1",
     "cross-env": "^7.0.3",
     "mocha": "^9.2.0",
-    "node-gyp": "^7.1.2",
     "nyc": "^15.1.0",
     "pre-commit": "^1.2.2",
-    "prebuildify": "^4.1.2",
     "prettier": "^2.3.1",
     "rimraf": "^3.0.2",
     "sinon": "^11.1.1",

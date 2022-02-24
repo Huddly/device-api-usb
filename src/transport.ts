@@ -17,10 +17,10 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     PENDING_CHUNK: 'pending_chunk'
   });
 
-
   vscInterface: Interface;
   inEndpoint: InEndpoint;
   outEndpoint: OutEndpoint;
+  isPollingActive: boolean = false;
 
   constructor(device: usb.Device) {
     super();
@@ -48,7 +48,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
   }
 
   init(): Promise<void> {
-    let claimed: boolean, opened: boolean = false;
+    let opened: boolean = false;
     return new Promise(async (resolve, reject) => {
       try {
         this.device.open();
@@ -58,7 +58,6 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
 
         this.vscInterface = vscInterface;
         this.vscInterface.claim();
-        claimed = true;
         this.inEndpoint = this.vscInterface.endpoints.find((endpoint: Endpoint) => (endpoint instanceof InEndpoint)) as InEndpoint;
         this.outEndpoint = this.vscInterface.endpoints.find((endpoint: Endpoint) => (endpoint instanceof OutEndpoint)) as OutEndpoint;
         resolve();
@@ -78,44 +77,38 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     });
   }
 
-  running: boolean = false;
-
   initEventLoop(): void {
-    this.inEndpoint.startPoll(1, this.MAX_PACKET_SIZE);
-    this.running = true;
-    this.startListen();
+    if (!this.isPollingActive) {
+      this.inEndpoint.startPoll(1, this.MAX_PACKET_SIZE);
+      this.startListen();
+      this.isPollingActive = true;
+    }
   }
 
-  async handleResetSeqRead(): Promise<void> {
+  async handleResetSeqRead(headerLen: number): Promise<void> {
+    Logger.warn('Reset sequence message sent from camera! Releasing endpoints, stopping event loop and closing device.', 'Device API USB Transport');
     await this.stopEventLoop();
     await this.close();
     this.emit('TRANSPORT_RESET');
-  }
-
-  calculateExpectedReadSize(chunk: Message): number {
-    return MessagePacket.HEADER_SIZES.HDR_SIZE + chunk.messageSize + chunk.payloadSize;
+    throw new Error(`Hlink: header is too small ${headerLen}`);
   }
 
   startListen(): void {
-    if (!this.running) {
-      return;
-    }
-
-    const chunks: Buffer[] = [];
+    let chunks: Buffer[] = [];
     let currentSize: number = 0;
     let expectedSize: number = -1;
     let currentState: string = this.READ_STATES.NEW_READ;
 
-    const parseAndEmitCompleteMessage = () => {
+    const parseAndEmitCompleteMessage: Function = () => {
       currentState = this.READ_STATES.NEW_READ;
-      const finalBuffer: Buffer = Buffer.concat(chunks, currentSize);
+      const finalBuffer: Buffer = Buffer.concat(chunks);
       const result: Message = MessagePacket.parseMessage(finalBuffer);
       chunks.splice(0, chunks.length); // Empty the array
       currentSize = 0;
       this.emit(result.message, result);
     }
 
-    const continueReadLogic = () => {
+    const continueReadLogic: Function = () => {
       if (currentSize < expectedSize) {
         currentState = this.READ_STATES.PENDING_CHUNK;
       } else {
@@ -123,60 +116,39 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
       }
     };
 
-    // Setup data event listener
-    this.inEndpoint.on('data', (buffer: Buffer) => {
+    const dataHandler: any = (buffer: Buffer) => {
       if (currentState === this.READ_STATES.NEW_READ) {
         if (buffer.length < MessagePacket.HEADER_SIZES.HDR_SIZE) {
-          this.handleResetSeqRead();
+          this.handleResetSeqRead(buffer.length);
           return;
         }
-        chunks.push(buffer);
-        currentSize += buffer.length;
-        const parsedChunk: Message = MessagePacket.parseMessage(buffer);
-        expectedSize = this.calculateExpectedReadSize(parsedChunk);
+
+        expectedSize = MessagePacket.parseMessage(buffer).totalSize();
+        chunks = [buffer];
+        currentSize = buffer.length;
         continueReadLogic();
       } else {
-        chunks.push(buffer);
+        chunks.push(Buffer.from(buffer));
         currentSize += buffer.length;
         continueReadLogic();
       }
-    });
+    }
+
+    // Setup data event listener
+    this.inEndpoint.on('data', dataHandler);
 
     // Setup error event listener
     this.inEndpoint.once('error', (error: usb.LibUSBException) => {
       Logger.error(`Received error message on read loop!`, error, 'Device-API-USB Transport');
+      this.inEndpoint?.removeListener('data', dataHandler);
       this.close();
     });
 
     // Setup poll end event listener
     this.inEndpoint.once('end', () => {
-      Logger.info('Usb polling has ended!');
-    });
-  }
-
-  async stopUsbEndpointPoll(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      this.inEndpoint.stopPoll(() => {
-        this.running = false;
-        resolve();
-      });
-      this.inEndpoint.once('error', (error: any) => {
-        Logger.error('Unable to stop poll!', error, 'Device-API_USB Transport');
-        reject(error);
-      });
-    })
-  }
-
-  async stopEventLoop(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      this.removeAllListeners();
-      if (this.running) {
-        this.stopUsbEndpointPoll()
-        .then(_ => resolve())
-        .catch(e => reject(e));
-      } else {
-        resolve();
-      }
+      this.inEndpoint?.removeListener('data', dataHandler);
+      this.stopUsbEndpointPoll();
+      Logger.info('Usb polling has ended!', 'Device-API-USB Transport');
     });
   }
 
@@ -197,12 +169,22 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
 
   removeAllListeners(eventName?: string): this {
     super.removeAllListeners(eventName);
+    this.inEndpoint?.removeAllListeners();
+    this.outEndpoint?.removeAllListeners();
     return this;
+  }
+
+  clear(): Promise<void> {
+    return Promise.resolve();
+  }
+
+  setEventLoopReadSpeed(timeout: number = 0): void {
+    Logger.warn('Invoked legacy/depricated method "setEventLoopReadSpeed"!', 'Device-API-USB Transport');
   }
 
   receiveMessage(msg: string, timeout: number = 500): Promise<any> {
     return new Promise(async (resolve, reject) => {
-      const timer = setTimeout(async () => {
+      const timer: NodeJS.Timeout = setTimeout(async () => {
         try {
           this.removeAllListeners(msg);
           reject(`Request has timed out! ${msg} ${timeout}`);
@@ -211,12 +193,12 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
         }
       }, timeout);
 
-      const messageHandler = (res: Message) => {
+      const messageHandler: Function = (res: Message) => {
         clearTimeout(timer);
         this.removeListener('ERROR', errorHandler);
         resolve(res);
       };
-      const errorHandler = (error) => {
+      const errorHandler: Function = (error: Error) => {
         clearTimeout(timer);
         this.removeListener(msg, messageHandler);
         reject(error);
@@ -247,6 +229,37 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
 
   unsubscribe(command: string): Promise<any> {
     return this.write('hlink-mb-unsubscribe', command);
+  }
+
+
+  async stopUsbEndpointPoll(): Promise<void> {
+    if (this.inEndpoint && !this.inEndpoint.pollActive) {
+      this.isPollingActive = false;
+      return;
+    }
+    return new Promise((resolve, reject) => {
+      this.inEndpoint.stopPoll(() => {
+        this.isPollingActive = false;
+        resolve();
+      });
+      this.inEndpoint.once('error', (error: any) => {
+        Logger.error('Unable to stop poll!', error, 'Device-API_USB Transport');
+        reject(error);
+      });
+    });
+  }
+
+  async stopEventLoop(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.removeAllListeners();
+      if (this.isPollingActive) {
+        this.stopUsbEndpointPoll()
+        .then(_ => resolve())
+        .catch(e => reject(e));
+      } else {
+        resolve();
+      }
+    });
   }
 
   async releaseEndpoints(): Promise<void> {
@@ -284,7 +297,6 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
 
   async readChunk(packetSize: number = this.MAX_PACKET_SIZE): Promise<any> {
     if (!this.inEndpoint) return Promise.reject('Device inEndpoint not initialized!');
-
     return new Promise((resolve, reject) => {
       this.inEndpoint.transfer(packetSize, (err: usb.LibUSBException, data: Buffer) => {
         if (err) return reject(`Unable to read data from device! Error: ${err.name}`);
@@ -304,27 +316,43 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     });
   }
 
+  flush(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.readChunk(1024)
+      .then(() => resolve())
+      .catch(e => reject(e));
+      setTimeout(() => resolve(), 100);
+    });
+  }
+
   async close(): Promise<any> {
-    if (this.device) {
-      await this.releaseEndpoints();
-      this.device.close();
-      this.device = undefined;
-    }
-    return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      this.flush()
+      .then(() => this.releaseEndpoints())
+      .then(() => {
+        try {
+          // TODO: Hande pending transfer requests before closing device!
+          this.device.close();
+        } finally {
+          resolve(true);
+        }
+      })
+      .catch((e: Error) => reject(e));
+    });
   }
 
   async performHlinkHandshake(): Promise<void> {
-    const cmds = [];
+    const cmds: Promise<any>[]  = [];
     cmds.push(this.sendChunk(Buffer.from([])));
     cmds.push(this.sendChunk(Buffer.from([])));
     cmds.push(this.sendChunk(Buffer.from([0])));
     cmds.push(this.readChunk(1024));
     const [, , , res] = await Promise.all(cmds);
-    const decodedMsg = Buffer.from(res).toString('utf8');
+    const decodedMsg: string = Buffer.from(res).toString('utf8');
 
-    const expected = 'HLink v0';
+    const expected: string = 'HLink v0';
     if (decodedMsg !== expected) {
-      const message = `Hlink handshake has failed! Wrong version. Expected ${expected}, got ${decodedMsg}.`;
+      const message: string = `Hlink handshake has failed! Wrong version. Expected ${expected}, got ${decodedMsg}.`;
       Logger.warn(message);
       return Promise.reject(message);
     }
