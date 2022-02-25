@@ -60,12 +60,6 @@ jobs:
           sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 60
           sudo apt install libudev-dev
 
-      - name: "Install python2.7 on windows"
-        if: matrix.os == 'windows-latest'
-        uses: actions/setup-python@v2
-        with:
-          python-version: 2.7
-
       - uses: actions/setup-node@v2
         with:
           node-version: ${{ matrix.node-version }}
