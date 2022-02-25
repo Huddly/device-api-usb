@@ -8,10 +8,11 @@ import Logger from '@huddly/sdk-interfaces/lib/statics/Logger';
 
 import NodeUsbTransport from './transport';
 import { EventEmitter } from 'events';
-import DeviceDiscoveryManager from './manager';
+import DeviceDiscoveryManager, { UsbDevice } from './manager';
 import { usb } from 'usb';
 
 export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
+  private readonly className: string = 'Device-API-USB';
   eventEmitter: EventEmitter;
   deviceDiscoveryManager: DeviceDiscoveryManager;
   maxSearchRetries: Number;
@@ -23,7 +24,8 @@ export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
     this.alwaysRetry = opts.alwaysRetry || false;
   }
 
-  async initialize() {
+  initialize(): void {
+    // Poke discovery manager to check for new devices on the system and fire attach events
     this.deviceDiscoveryManager.deviceList(true);
   }
 
@@ -36,24 +38,30 @@ export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
     return this.deviceDiscoveryManager;
   }
 
-  async getValidatedTransport(device): Promise<ITransport> {
-    if ([HuddlyHEX.GO_PID, HuddlyHEX.L1_PID, HuddlyHEX.BASE_PID].includes(device.productId)) {
+  async getValidatedTransport(device: usb.Device): Promise<ITransport> {
+    if (
+      [HuddlyHEX.GO_PID, HuddlyHEX.L1_PID, HuddlyHEX.BASE_PID].includes(
+        (device as any as UsbDevice).productId
+      )
+    ) {
       Logger.warn(
-        `HLink is not supported for Huddly device with PID ${device.productId}`,
-        'Device API USB'
+        `HLink is not supported for Huddly device with PID ${
+          (device as any as UsbDevice).productId
+        }`,
+        this.className
       );
       return undefined;
     }
     try {
-      const transport = await this.getTransport(device);
+      const transport: NodeUsbTransport = await this.getTransport(device);
       await transport.performHlinkHandshake();
-      Logger.info('Transport Protocol is Hlink', 'Device API USB');
+      Logger.debug('Transport Protocol is Hlink', this.className);
       return transport;
     } catch (e) {
       Logger.error(
-        `HLink is not supported for device: ${device.serialNumber}`,
+        `HLink is not supported for device: ${(device as any as UsbDevice).serialNumber}`,
         e,
-        'Device API USB'
+        this.className
       );
       return undefined;
     }
@@ -65,19 +73,19 @@ export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
     return transport;
   }
 
-  async isUVCControlsSupported(device) {
+  async isUVCControlsSupported(device: usb.Device): Promise<boolean> {
     return Promise.resolve(false);
   }
 
-  async getUVCControlAPIForDevice(device): Promise<IUVCControlAPI> {
+  async getUVCControlAPIForDevice(device: usb.Device): Promise<IUVCControlAPI> {
     throw new Error('UVCControlInterface API not available for node-usb');
   }
 
-  async isHIDSupported(device) {
+  async isHIDSupported(device: usb.Device): Promise<boolean> {
     return Promise.resolve(false);
   }
 
-  async getHIDAPIForDevice(device): Promise<any> {
+  async getHIDAPIForDevice(device: usb.Device): Promise<any> {
     throw new Error('HID Unsupported for device-api usb');
   }
 }

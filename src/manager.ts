@@ -5,7 +5,7 @@ import IDeviceDiscovery from '@huddly/sdk-interfaces/lib/interfaces/IDeviceDisco
 import HuddlyHEX from '@huddly/sdk-interfaces/lib/enums/HuddlyHex';
 import Logger from '@huddly/sdk-interfaces/lib/statics/Logger';
 
-interface UsbDevice {
+export interface UsbDevice {
   id: string;
   busNumber: number;
   deviceAddress: number;
@@ -13,20 +13,27 @@ interface UsbDevice {
   interfaces: any;
   serialNumber: string;
   productName: string;
-  productId: string;
-  vendorId: string;
+  productId: number;
+  vendorId: number;
 }
+
 export default class DeviceDiscoveryManager implements IDeviceDiscovery {
   private readonly className: string = 'Device-API-USB Manager';
   private attachedDevices: Array<UsbDevice> = [];
   private eventEmitter: EventEmitter;
 
-  private generateUsbUniqueId(props: { usbBusNumber: number, usbDeviceAddress: number, usbPortNumbers: Array<Number> }): string {
-    const stringCombo: String = String(props.usbBusNumber).concat(String(props.usbDeviceAddress).concat(props.usbPortNumbers.toString()));
+  private generateUsbUniqueId(props: {
+    usbBusNumber: number;
+    usbDeviceAddress: number;
+    usbPortNumbers: Array<Number>;
+  }): string {
+    const stringCombo: String = String(props.usbBusNumber).concat(
+      String(props.usbDeviceAddress).concat(props.usbPortNumbers.toString())
+    );
     let hash = 0;
     for (let i = 0; i < stringCombo.length; i++) {
       const char = stringCombo.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash;
     }
     return hash.toString();
@@ -36,7 +43,7 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
     const uid: string = this.generateUsbUniqueId({
       usbBusNumber: device.busNumber,
       usbDeviceAddress: device.deviceAddress,
-      usbPortNumbers: device.portNumbers
+      usbPortNumbers: device.portNumbers,
     });
     return uid;
   }
@@ -45,23 +52,29 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
     return new Promise((resolve, reject) => {
       try {
         device.open();
-        device.getStringDescriptor(device.deviceDescriptor.iSerialNumber, (err: usb.LibUSBException, serialNo: string) => {
-          if (err) return reject(err);
-          device.getStringDescriptor(device.deviceDescriptor.iProduct, (err, productName) => {
+        device.getStringDescriptor(
+          device.deviceDescriptor.iSerialNumber,
+          (err: usb.LibUSBException, serialNo: string) => {
             if (err) return reject(err);
+            device.getStringDescriptor(device.deviceDescriptor.iProduct, (err, productName) => {
+              if (err) return reject(err);
 
-            device['id'] = this.getDeviceUUID(device);
-            device['serialNumber'] = serialNo;
-            device['productName'] = productName;
-            device['productId'] = device.deviceDescriptor.idProduct;
-            device['vendorId'] = device.deviceDescriptor.idVendor;
-            device.close();
-            resolve(true);
-          });
-        });
+              device['id'] = this.getDeviceUUID(device);
+              device['serialNumber'] = serialNo;
+              device['productName'] = productName;
+              device['productId'] = device.deviceDescriptor.idProduct;
+              device['vendorId'] = device.deviceDescriptor.idVendor;
+              device.close();
+              resolve(true);
+            });
+          }
+        );
       } catch (e) {
         if (e.errno === usb.LIBUSB_ERROR_ACCESS) {
-          Logger.warn(`Unable to open usb device. Device occupied by another process!`, this.className);
+          Logger.warn(
+            `Unable to open usb device. Device occupied by another process!`,
+            this.className
+          );
           return resolve(false); // We assume that a different SDK process is using this device. We don't fail here.
         }
 
@@ -76,7 +89,9 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
   }
 
   private newDeviceDetached(detachedDev: UsbDevice): void {
-    this.attachedDevices = this.attachedDevices.filter((device: UsbDevice) => device.id !== detachedDev.id);
+    this.attachedDevices = this.attachedDevices.filter(
+      (device: UsbDevice) => device.id !== detachedDev.id
+    );
   }
 
   private isDeviceWithUUIDCached(uuid: string): boolean {
@@ -95,17 +110,26 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
   registerForHotplugEvents(eventEmitter: EventEmitter): void {
     this.eventEmitter = eventEmitter;
     usb.on('attach', async (device: usb.Device) => {
-      if (device.deviceDescriptor.idVendor === HuddlyHEX.VID && await this.fetchAndPopulateDeviceParams(device)) {
-        this.newDeviceAttached(device as unknown as UsbDevice);
-        Logger.debug(`Got ATTACH event from device with serial ${(device as unknown as UsbDevice).serialNumber}`, this.className);
+      if (
+        device.deviceDescriptor.idVendor === HuddlyHEX.VID &&
+        (await this.fetchAndPopulateDeviceParams(device))
+      ) {
+        this.newDeviceAttached(device as any as UsbDevice);
+        Logger.debug(
+          `Got ATTACH event from device with serial ${(device as any as UsbDevice).serialNumber}`,
+          this.className
+        );
         this.eventEmitter.emit('ATTACH', device);
       }
     });
 
     usb.on('detach', (device: usb.Device) => {
       if (device.deviceDescriptor.idVendor === HuddlyHEX.VID) {
-        Logger.debug(`Got DETACH event from device with serial ${(device as unknown as UsbDevice).serialNumber}`, this.className);
-        this.newDeviceDetached(device as unknown as UsbDevice);
+        Logger.debug(
+          `Got DETACH event from device with serial ${(device as any as UsbDevice).serialNumber}`,
+          this.className
+        );
+        this.newDeviceDetached(device as any as UsbDevice);
         this.eventEmitter.emit('DETACH', device);
       }
     });
@@ -113,12 +137,17 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
 
   async deviceList(doEmitNewDevices: boolean = false): Promise<usb.Device[]> {
     const usbDevices: usb.Device[] = getDeviceList();
-    const devices: usb.Device[] = usbDevices.filter((dev: usb.Device) => dev.deviceDescriptor.idVendor === HuddlyHEX.VID);
+    const devices: usb.Device[] = usbDevices.filter(
+      (dev: usb.Device) => dev.deviceDescriptor.idVendor === HuddlyHEX.VID
+    );
     const elidgableDevices: usb.Device[] = [];
     for (let idx = 0; idx < devices.length; idx++) {
       const uuid: string = this.getDeviceUUID(devices[idx]);
-      if (!this.isDeviceWithUUIDCached(uuid) && await this.fetchAndPopulateDeviceParams(devices[idx])) {
-        this.newDeviceAttached(devices[idx] as unknown as UsbDevice);
+      if (
+        !this.isDeviceWithUUIDCached(uuid) &&
+        (await this.fetchAndPopulateDeviceParams(devices[idx]))
+      ) {
+        this.newDeviceAttached(devices[idx] as any as UsbDevice);
         // We assume that the device "Detach" event will take care of clearing up the device cache list
         elidgableDevices.push(devices[idx]);
         if (doEmitNewDevices) {
@@ -131,17 +160,16 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
 
   async getDevice(serialNumber: string | undefined): Promise<usb.Device | undefined> {
     const devices: usb.Device[] = await this.deviceList();
-    Logger.debug(
-      `DeviceList found ${devices.length} enumerated Huddly devices`,
-      this.className
-    );
+    Logger.debug(`DeviceList found ${devices.length} enumerated Huddly devices`, this.className);
 
     if (serialNumber) {
       Logger.debug(
         `Filtering the devices for the following serial number: ${serialNumber}`,
         this.className
       );
-      return devices.find((element: usb.Device) => (element as unknown as UsbDevice).serialNumber == serialNumber);
+      return devices.find(
+        (element: usb.Device) => (element as any as UsbDevice).serialNumber == serialNumber
+      );
     } else if (devices.length > 0) {
       if (devices.length > 1) {
         Logger.warn(

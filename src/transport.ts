@@ -11,25 +11,18 @@ import MessagePacket, { Message } from './messagepacket';
 export default class NodeUsbTransport extends EventEmitter implements ITransport {
   private readonly MAX_PACKET_SIZE: number = 16 * 1024;
   private readonly VSC_INTERFACE_CLASS = 255; // Vendor Specifc Class
-  private _device: usb.Device;
   private readonly READ_STATES = Object.freeze({
     NEW_READ: 'new_read',
-    PENDING_CHUNK: 'pending_chunk'
+    PENDING_CHUNK: 'pending_chunk',
   });
   private readonly className: string = 'Device-API-USB Transport';
-
+  private _device: usb.Device;
+  private isPollingActive: boolean = false;
+  private ifOpenedAndEndpointsClaimed: boolean = false;
 
   vscInterface: Interface;
   inEndpoint: InEndpoint;
   outEndpoint: OutEndpoint;
-  ifOpenedAndEndpointsClaimed: boolean = false;
-  isPollingActive: boolean = false;
-
-  constructor(device: usb.Device) {
-    super();
-    this._device = device;
-    super.setMaxListeners(50);
-  }
 
   /**
    * Getter method for device class attribute.
@@ -50,6 +43,12 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     this._device = device;
   }
 
+  constructor(device: usb.Device) {
+    super();
+    this._device = device;
+    super.setMaxListeners(50);
+  }
+
   init(): Promise<void> {
     if (this.ifOpenedAndEndpointsClaimed) {
       return;
@@ -60,13 +59,19 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
       try {
         this.device.open();
         opened = true;
-        const vscInterface: Interface = this.device.interfaces.find((ifc: Interface) => (ifc.descriptor.bInterfaceClass === this.VSC_INTERFACE_CLASS));
+        const vscInterface: Interface = this.device.interfaces.find(
+          (ifc: Interface) => ifc.descriptor.bInterfaceClass === this.VSC_INTERFACE_CLASS
+        );
         if (!vscInterface) return reject('No VSC Interface present on the usb device!');
 
         this.vscInterface = vscInterface;
         this.vscInterface.claim();
-        this.inEndpoint = this.vscInterface.endpoints.find((endpoint: Endpoint) => (endpoint instanceof InEndpoint)) as InEndpoint;
-        this.outEndpoint = this.vscInterface.endpoints.find((endpoint: Endpoint) => (endpoint instanceof OutEndpoint)) as OutEndpoint;
+        this.inEndpoint = this.vscInterface.endpoints.find(
+          (endpoint: Endpoint) => endpoint instanceof InEndpoint
+        ) as InEndpoint;
+        this.outEndpoint = this.vscInterface.endpoints.find(
+          (endpoint: Endpoint) => endpoint instanceof OutEndpoint
+        ) as OutEndpoint;
 
         this.ifOpenedAndEndpointsClaimed = true;
         resolve();
@@ -76,8 +81,13 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
         }
 
         if (err.errno === usb.LIBUSB_ERROR_ACCESS) {
-          Logger.warn('Unable to claim usb interface. Please make sure the device is not used by another process!', this.className);
-          return reject(`Unable to claim usb interface. Please make sure the device is not used by another process!`);
+          Logger.warn(
+            'Unable to claim usb interface. Please make sure the device is not used by another process!',
+            this.className
+          );
+          return reject(
+            `Unable to claim usb interface. Please make sure the device is not used by another process!`
+          );
         }
 
         Logger.warn('Error Occurred claiming interface!', this.className);
@@ -95,9 +105,30 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     }
   }
 
+  async performHlinkHandshake(): Promise<void> {
+    const cmds: Promise<any>[] = [];
+    cmds.push(this.sendChunk(Buffer.from([])));
+    cmds.push(this.sendChunk(Buffer.from([])));
+    cmds.push(this.sendChunk(Buffer.from([0])));
+    cmds.push(this.readChunk(1024));
+    const [, , , res] = await Promise.all(cmds);
+    const decodedMsg: string = Buffer.from(res).toString('utf8');
+
+    const expected: string = 'HLink v0';
+    if (decodedMsg !== expected) {
+      const message: string = `Hlink handshake has failed! Wrong version. Expected ${expected}, got ${decodedMsg}.`;
+      Logger.warn(message, this.className);
+      return Promise.reject(message);
+    }
+    return Promise.resolve();
+  }
+
   async handleResetSeqRead(headerLen: number): Promise<void> {
     try {
-      Logger.warn('Reset sequence message sent from camera! Releasing endpoints, stopping event loop and closing device.', this.className);
+      Logger.warn(
+        'Reset sequence message sent from camera! Releasing endpoints, stopping event loop and closing device.',
+        this.className
+      );
       await this.stopEventLoop();
       await this.close();
       this.emit('TRANSPORT_RESET');
@@ -157,40 +188,11 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
       this.close();
     };
 
-
     // Setup event handlers
     this.inEndpoint.on('data', dataHandler);
     this.inEndpoint.once('error', errorHandler);
     this.once('ERROR', errorHandler);
     this.once('CLOSED', closeHandler);
-  }
-
-  once(eventName: string, listener: any): this {
-    super.on(eventName, listener);
-    return this;
-  }
-
-  on(eventName: string, listener: any): this {
-    super.on(eventName, listener);
-    return this;
-  }
-
-  removeListener(eventName: string, listener: any): this {
-    super.removeListener(eventName, listener);
-    return this;
-  }
-
-  removeAllListeners(eventName?: string): this {
-    super.removeAllListeners(eventName);
-    return this;
-  }
-
-  clear(): Promise<void> {
-    return Promise.resolve();
-  }
-
-  setEventLoopReadSpeed(timeout: number = 0): void {
-    Logger.warn('Invoked legacy/depricated method "setEventLoopReadSpeed"!', this.className);
   }
 
   receiveMessage(msg: string, timeout: number = 500): Promise<any> {
@@ -221,16 +223,6 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     });
   }
 
-  /**
-   * This method is no longer supported! Legacy.
-   *
-   * @memberof NodeUsbTransport
-   */
-   read(receiveMsg: string = 'unknown', timeout: number = 500): Promise<any> {
-    Logger.warn('Invoked legacy/depricated method "read"!', this.className);
-    throw new Error('Method "read" is no longer supported! Please use "receiveMessage" instead.');
-  }
-
   write(cmd: string, payload: any = Buffer.alloc(0)): Promise<any> {
     const encodedMsgBuffer: Buffer = MessagePacket.createMessage(cmd, payload);
     return this.transfer(encodedMsgBuffer);
@@ -244,65 +236,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     return this.write('hlink-mb-unsubscribe', command);
   }
 
-
-  async stopUsbEndpointPoll(): Promise<void> {
-    if (this.inEndpoint && !this.inEndpoint.pollActive) {
-      this.isPollingActive = false;
-      return;
-    }
-    return new Promise((resolve, reject) => {
-      this.inEndpoint.stopPoll(() => {
-        this.isPollingActive = false;
-        resolve();
-      });
-      this.inEndpoint.once('error', (error: any) => {
-        Logger.error('Unable to stop poll!', error, this.className);
-        reject(error);
-      });
-    });
-  }
-
-  async stopEventLoop(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      this.removeAllListeners();
-      if (this.isPollingActive) {
-        this.stopUsbEndpointPoll()
-        .then(_ => resolve())
-        .catch(e => reject(e));
-      } else {
-        resolve();
-      }
-    });
-  }
-
-  async releaseEndpoints(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (this.vscInterface) {
-        this.stopUsbEndpointPoll()
-        .then(() => {
-          this.vscInterface.release(true, (err: usb.LibUSBException) => {
-            if (err) return reject(`Unable to release vsc interface! Error: ${err.name}`);
-            resolve();
-          });
-        })
-        .catch(e => reject(e));
-      } else {
-        resolve();
-      }
-    });
-  }
-
-  /**
-   * This method is no longer supported! Legacy.
-   *
-   * @memberof NodeUsbTransport
-   */
-   async receive(): Promise<Buffer> {
-    Logger.warn('Invoked legacy/depricated method "receive"!', this.className);
-    throw new Error('Method "receive" is no longer supported! Please use "receiveMessage" instead.');
-  }
-
-  async transfer(messageBuffer: Buffer) {
+  async transfer(messageBuffer: Buffer): Promise<void> {
     for (let i = 0; i < messageBuffer.length; i += this.MAX_PACKET_SIZE) {
       const chunk = messageBuffer.slice(i, i + this.MAX_PACKET_SIZE);
       await this.sendChunk(chunk);
@@ -328,34 +262,107 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
       });
     });
   }
-  async close(): Promise<any> {
-    return new Promise<void>((resolve, reject) => {
-      this.releaseEndpoints()
-      .then(_ => this.device.close())
-      .then(_ => {
-        this.ifOpenedAndEndpointsClaimed = false;
-        this.emit('CLOSED');
+
+  /********* Teardown Methods *********/
+  async stopUsbEndpointPoll(): Promise<void> {
+    if (this.inEndpoint && !this.inEndpoint.pollActive) {
+      this.isPollingActive = false;
+      return;
+    }
+    return new Promise((resolve, reject) => {
+      this.inEndpoint.stopPoll(() => {
+        this.isPollingActive = false;
         resolve();
-      })
-      .catch(reject);
+      });
+      this.inEndpoint.once('error', (error: any) => {
+        Logger.error('Unable to stop poll!', error, this.className);
+        reject(error);
+      });
     });
   }
 
-  async performHlinkHandshake(): Promise<void> {
-    const cmds: Promise<any>[]  = [];
-    cmds.push(this.sendChunk(Buffer.from([])));
-    cmds.push(this.sendChunk(Buffer.from([])));
-    cmds.push(this.sendChunk(Buffer.from([0])));
-    cmds.push(this.readChunk(1024));
-    const [, , , res] = await Promise.all(cmds);
-    const decodedMsg: string = Buffer.from(res).toString('utf8');
+  async stopEventLoop(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.removeAllListeners();
+      if (this.isPollingActive) {
+        this.stopUsbEndpointPoll()
+          .then((_) => resolve())
+          .catch((e) => reject(e));
+      } else {
+        resolve();
+      }
+    });
+  }
 
-    const expected: string = 'HLink v0';
-    if (decodedMsg !== expected) {
-      const message: string = `Hlink handshake has failed! Wrong version. Expected ${expected}, got ${decodedMsg}.`;
-      Logger.warn(message, this.className);
-      return Promise.reject(message);
-    }
+  async releaseEndpoints(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (this.vscInterface) {
+        this.stopUsbEndpointPoll()
+          .then(() => {
+            this.vscInterface.release(true, (err: usb.LibUSBException) => {
+              if (err) return reject(`Unable to release vsc interface! Error: ${err.name}`);
+              resolve();
+            });
+          })
+          .catch((e) => reject(e));
+      } else {
+        resolve();
+      }
+    });
+  }
+
+  async close(): Promise<any> {
+    return new Promise<void>((resolve, reject) => {
+      this.releaseEndpoints()
+        .then((_) => this.device.close())
+        .then((_) => {
+          this.ifOpenedAndEndpointsClaimed = false;
+          this.emit('CLOSED');
+          resolve();
+        })
+        .catch(reject);
+    });
+  }
+
+  /********* EventEmitter Overrides *********/
+  once(eventName: string, listener: any): this {
+    super.on(eventName, listener);
+    return this;
+  }
+
+  on(eventName: string, listener: any): this {
+    super.on(eventName, listener);
+    return this;
+  }
+
+  removeListener(eventName: string, listener: any): this {
+    super.removeListener(eventName, listener);
+    return this;
+  }
+
+  removeAllListeners(eventName?: string): this {
+    super.removeAllListeners(eventName);
+    return this;
+  }
+
+  /********* DEPRICATED/LEGACY METHODS *********/
+  receive(): Promise<Buffer> {
+    Logger.warn('Invoked legacy/depricated method "receive"!', this.className);
+    throw new Error(
+      'Method "receive" is no longer supported! Please use "receiveMessage" instead.'
+    );
+  }
+
+  read(receiveMsg: string = 'unknown', timeout: number = 500): Promise<any> {
+    Logger.warn('Invoked legacy/depricated method "read"!', this.className);
+    throw new Error('Method "read" is no longer supported! Please use "receiveMessage" instead.');
+  }
+
+  setEventLoopReadSpeed(timeout: number = 0): void {
+    Logger.warn('Invoked legacy/depricated method "setEventLoopReadSpeed"!', this.className);
+  }
+
+  clear(): Promise<void> {
     return Promise.resolve();
   }
 }
