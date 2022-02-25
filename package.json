@@ -38,7 +38,7 @@
   "scripts": {
     "build": "npm run build-ts && npm run tslint",
     "build-ts": "tsc --declaration",
-    "prepublish-package": "node ./scripts/rmLibDir",
+    "prepublish-package": "node scripts/rmLibDir",
     "publish-package": "npm run build && npm run manifest && npm publish",
     "watch-ts": "tsc -w",
     "tslint": "tslint -c tslint.json -p tsconfig.json",
@@ -50,13 +50,13 @@
     "postinstall": "node scripts/download-binaries.js",
     "prepare": "npm run build-ts",
     "preversion": "npm run tslint",
-    "prettier": "./node_modules/.bin/prettier  --config ./.prettierrc --write src/**/*.ts",
-    "prettier-check": "./node_modules/.bin/prettier  --config ./.prettierrc --check src/**/*.ts",
+    "prettier": "npx prettier  --config .prettierrc --write src/**/*.ts",
+    "prettier-check": "npx prettier --config .prettierrc --check src/**/*.ts",
     "manifest": "PROD_MANIFEST=true node scripts/generate-manifest.js",
     "release:major": "changelog -M && git add CHANGELOG.md && git commit -m 'Updated CHANGELOG.md' && npm version major && git push origin && git push origin --tags",
     "release:minor": "changelog -m && git add CHANGELOG.md && git commit -m 'Updated CHANGELOG.md' && npm version minor && git push origin && git push origin --tags",
     "release:patch": "changelog -p && git add CHANGELOG.md && git commit -m 'Updated CHANGELOG.md' && npm version patch && git push origin && git push origin --tags",
-    "audit-check": "node ./scripts/checkVulnerabilities.js"
+    "audit-check": "node scripts/checkVulnerabilities.js"
   },
   "pre-commit": [
     "prettier-check",
