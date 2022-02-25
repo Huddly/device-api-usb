@@ -84,7 +84,7 @@ jobs:
         run: npm run build
 
       - name: "Run unt tests"
-        run: npm run tests
+        run: npm run test
 
       - name: "Check for dependency vulnerabilities"
         run: npm run audit-check
