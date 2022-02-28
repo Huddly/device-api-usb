@@ -68,8 +68,39 @@ export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
   }
 
   async getTransport(device: usb.Device): Promise<NodeUsbTransport> {
-    const transport = new NodeUsbTransport(device);
+    let transport: NodeUsbTransport;
+    if (device instanceof usb.Device) {
+      transport = new NodeUsbTransport(device);
+    } else {
+      const otherDevice: UsbDevice = device as UsbDevice;
+      if (!otherDevice.serialNumber) {
+        const errMsg: string = `Transport cannot be initialized since the provided usb device instance is lacking serial number [${otherDevice.serialNumber}]!`;
+        Logger.warn(errMsg, this.className);
+        return Promise.reject(errMsg);
+      }
+
+      let i = 0;
+      let usbDevice: usb.Device;
+      while ((this.alwaysRetry || i < this.maxSearchRetries) && !usbDevice) {
+        usbDevice = await this.deviceDiscoveryManager.getDevice(otherDevice.serialNumber);
+        i++;
+      }
+
+      if (!usbDevice) {
+        const errMsg: string = `Unable to find usb.Device instance with serial [${otherDevice.serialNumber}] afer ${i} attempts!`;
+        Logger.warn(errMsg, this.className);
+        return Promise.reject(errMsg);
+      }
+
+      transport = new NodeUsbTransport(usbDevice);
+    }
+
+    Logger.debug(
+      'Usb device instance acquired, initializing transport component...',
+      this.className
+    );
     await transport.init();
+    Logger.debug('Transport component initialized.', this.className);
     return transport;
   }
 
