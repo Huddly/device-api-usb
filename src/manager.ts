@@ -140,7 +140,7 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
     const devices: usb.Device[] = usbDevices.filter(
       (dev: usb.Device) => dev.deviceDescriptor.idVendor === HuddlyHEX.VID
     );
-    const elidgableDevices: usb.Device[] = [];
+    const foundDevices: usb.Device[] = [];
     for (let idx = 0; idx < devices.length; idx++) {
       const uuid: string = this.getDeviceUUID(devices[idx]);
       if (
@@ -149,13 +149,15 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
       ) {
         this.newDeviceAttached(devices[idx] as any as UsbDevice);
         // We assume that the device "Detach" event will take care of clearing up the device cache list
-        elidgableDevices.push(devices[idx]);
         if (doEmitNewDevices) {
           this.eventEmitter.emit('ATTACH', devices[idx]);
         }
       }
+
+      // After having generated the UUID and populated the device parameters, add it to the found device list
+      foundDevices.push(devices[idx]);
     }
-    return elidgableDevices;
+    return foundDevices;
   }
 
   async getDevice(serialNumber: string | undefined): Promise<usb.Device | undefined> {
