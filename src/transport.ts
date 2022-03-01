@@ -256,7 +256,10 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     if (!this.inEndpoint) return Promise.reject('Device inEndpoint not initialized!');
     return new Promise((resolve, reject) => {
       this.inEndpoint.transfer(packetSize, (err: usb.LibUSBException, data: Buffer) => {
-        if (err) return reject(`Unable to read data from device! Error: ${err.name}`);
+        if (err)
+          return reject(
+            `Unable to read data from device (LibUSBException: ${err.errno})! \n ${err.message}`
+          );
         resolve(data);
       });
     });
@@ -266,7 +269,10 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     if (!this.outEndpoint) return Promise.reject('Device outEndpoint not initialized!');
     return new Promise((resolve, reject) => {
       this.outEndpoint.transfer(chunk, (err: usb.LibUSBException, dataSent: number) => {
-        if (err) return reject(`Unable to write data to device! Error: ${err.name}`);
+        if (err)
+          return reject(
+            `Unable to write data to device (LibUSBException: ${err.errno})! \n ${err.message}`
+          );
         resolve();
       });
     });
