@@ -371,9 +371,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     throw new Error('Method "read" is no longer supported! Please use "receiveMessage" instead.');
   }
 
-  setEventLoopReadSpeed(timeout: number = 0): void {
-    Logger.warn('Invoked legacy/depricated method "setEventLoopReadSpeed"!', this.className);
-  }
+  setEventLoopReadSpeed(timeout: number = 0): void {}
 
   clear(): Promise<void> {
     return Promise.resolve();
