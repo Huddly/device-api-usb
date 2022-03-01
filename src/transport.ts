@@ -18,7 +18,16 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
   private readonly className: string = 'Device-API-USB Transport';
   private _device: usb.Device;
   private isPollingActive: boolean = false;
-  private ifOpenedAndEndpointsClaimed: boolean = false;
+
+  /**
+   * A boolean representation of the device being opened and its corresponding
+   * vsc interface claimed for channeling the communication.
+   *
+   * @private
+   * @type {boolean}
+   * @memberof NodeUsbTransport
+   */
+  private deviceClaimed: boolean = false;
 
   vscInterface: Interface;
   inEndpoint: InEndpoint;
@@ -50,7 +59,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
   }
 
   init(): Promise<void> {
-    if (this.ifOpenedAndEndpointsClaimed) {
+    if (this.deviceClaimed) {
       return;
     }
 
@@ -73,7 +82,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
           (endpoint: Endpoint) => endpoint instanceof OutEndpoint
         ) as OutEndpoint;
 
-        this.ifOpenedAndEndpointsClaimed = true;
+        this.deviceClaimed = true;
         resolve();
       } catch (err) {
         if (opened) {
@@ -296,7 +305,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
 
   async releaseEndpoints(): Promise<void> {
     return new Promise((resolve, reject) => {
-      if (this.vscInterface) {
+      if (this.deviceClaimed) {
         this.stopUsbEndpointPoll()
           .then(() => {
             this.vscInterface.release(true, (err: usb.LibUSBException) => {
@@ -312,11 +321,15 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
   }
 
   async close(): Promise<any> {
+    if (!this.deviceClaimed) {
+      return;
+    }
+
     return new Promise<void>((resolve, reject) => {
       this.releaseEndpoints()
         .then((_) => this.device.close())
         .then((_) => {
-          this.ifOpenedAndEndpointsClaimed = false;
+          this.deviceClaimed = false;
           this.emit('CLOSED');
           resolve();
         })
