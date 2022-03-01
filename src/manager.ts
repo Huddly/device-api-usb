@@ -171,9 +171,11 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
       );
       const targetDevice: usb.Device = devices.find((element: usb.Device) => {
         const dev: UsbDevice = element as any as UsbDevice;
-        return (
-          dev?.serialNumber.includes(serialNumber) || serialNumber?.includes(dev?.serialNumber)
-        );
+        if (dev && dev.serialNumber) {
+          // Could be that the device was not opened for the serial number to be read, hence the check here.
+          return dev.serialNumber.includes(serialNumber) || serialNumber.includes(dev.serialNumber);
+        }
+        return false;
       });
 
       if (!targetDevice) {
