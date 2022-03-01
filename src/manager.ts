@@ -169,9 +169,21 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
         `Filtering the devices for the following serial number: ${serialNumber}`,
         this.className
       );
-      return devices.find(
-        (element: usb.Device) => (element as any as UsbDevice).serialNumber == serialNumber
-      );
+      const targetDevice: usb.Device = devices.find((element: usb.Device) => {
+        const dev: UsbDevice = element as any as UsbDevice;
+        return (
+          dev?.serialNumber.includes(serialNumber) || serialNumber?.includes(dev?.serialNumber)
+        );
+      });
+
+      if (!targetDevice) {
+        Logger.warn(
+          `Unable to find device with serial ${serialNumber} among ${devices.length} huddly devices attached on the host machine!`,
+          this.className
+        );
+      }
+
+      return targetDevice;
     } else if (devices.length > 0) {
       if (devices.length > 1) {
         Logger.warn(
