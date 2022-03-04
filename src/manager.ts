@@ -109,7 +109,12 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
 
   registerForHotplugEvents(eventEmitter: EventEmitter): void {
     this.eventEmitter = eventEmitter;
+    Logger.debug('::::: HotPlug Events have been registered :::::', this.className);
     usb.on('attach', async (device: usb.Device) => {
+      Logger.debug(
+        `::::: Got attach event for device ${device.deviceDescriptor.idVendor}:${device.deviceDescriptor.idProduct} :::::`,
+        this.className
+      );
       if (
         device.deviceDescriptor.idVendor === HuddlyHEX.VID &&
         (await this.fetchAndPopulateDeviceParams(device))
@@ -124,7 +129,12 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
     });
 
     usb.on('detach', (device: usb.Device) => {
+      Logger.debug(
+        `::::: Got detach event for device ${device.deviceDescriptor.idVendor}:${device.deviceDescriptor.idProduct} :::::`,
+        this.className
+      );
       if (device.deviceDescriptor.idVendor === HuddlyHEX.VID) {
+        Logger.debug(`:::: The detach event is for a Huddly Device :::::`, this.className);
         Logger.debug(
           `Got DETACH event from device with serial ${(device as any as UsbDevice).serialNumber}`,
           this.className
@@ -150,6 +160,7 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
         this.newDeviceAttached(devices[idx] as any as UsbDevice);
         // We assume that the device "Detach" event will take care of clearing up the device cache list
         if (doEmitNewDevices) {
+          Logger.debug('::::: List device with emitting capabilities ::::::', this.className);
           this.eventEmitter.emit('ATTACH', devices[idx]);
         }
       }
