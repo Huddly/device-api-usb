@@ -54,11 +54,12 @@ export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
     }
     try {
       const transport: NodeUsbTransport = await this.getTransport(device);
+      Logger.debug('Performing initial handshake!', this.className);
       await transport.performHlinkHandshake();
       Logger.debug('Transport Protocol is Hlink', this.className);
       return transport;
     } catch (e) {
-      Logger.warn(e, this.className);
+      Logger.warn(`Transport not supported or handshake failed!\n${e}`, this.className);
       return undefined;
     }
   }

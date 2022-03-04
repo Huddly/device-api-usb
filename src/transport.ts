@@ -129,6 +129,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
       Logger.warn(message, this.className);
       return Promise.reject(message);
     }
+    Logger.debug('Handshake completed!');
     return Promise.resolve();
   }
 
