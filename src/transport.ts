@@ -315,7 +315,12 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
         this.stopUsbEndpointPoll()
           .then(() => {
             this.vscInterface.release(true, (err: usb.LibUSBException) => {
-              if (err) return reject(`Unable to release vsc interface! Error: ${err.name}`);
+              if (err)
+                return reject(
+                  `Unable to release vsc interface! Error: ${err.name} \n${
+                    err.stack || err.message
+                  }`
+                );
               resolve();
             });
           })
