@@ -115,22 +115,18 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
   }
 
   async performHlinkHandshake(): Promise<void> {
-    Logger.debug('OLD STYLE HANDSHAKE. Sending first empty buffer.....', this.className);
     await this.sendChunk(Buffer.alloc(0));
-    Logger.debug('OLD STYLE HANDSHAKE. Sending second buffer of size 1.....', this.className);
     await this.sendChunk(Buffer.alloc(1, 0x00));
-    Logger.debug('OLD STYLE HANDSHAKE. Reading next chunk.....', this.className);
     const res = await this.readChunk(1024);
-    Logger.debug('OLD STYLE HANDSHAKE. All read/write operations completed', this.className);
     const decodedMsg = res.toString('utf8');
     const expected: string = 'HLink v0';
 
-    Logger.debug(`Handshake message: ${decodedMsg}`, this.className);
     if (decodedMsg !== expected) {
       const message: string = `Hlink handshake has failed! Wrong version. Expected ${expected}, got ${decodedMsg}.`;
+      Logger.warn(message, this.className);
       return Promise.reject(message);
     }
-    Logger.debug('Handshake completed!');
+
     return Promise.resolve();
   }
 
