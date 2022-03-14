@@ -167,7 +167,12 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     const dataHandler: any = (buffer: Buffer): void => {
       if (currentState === this.READ_STATES.NEW_READ) {
         if (buffer.length < MessagePacket.HEADER_SIZES.HDR_SIZE) {
-          this.handleResetSeqRead(buffer.length);
+          Logger.debug(
+            `Received a reset sequence. Buffer size is ${buffer.length}. Reading will continue......`
+          );
+          chunks = [buffer];
+          currentState = this.READ_STATES.PENDING_CHUNK;
+          // this.handleResetSeqRead(buffer.length);
           return;
         }
 
