@@ -7,6 +7,7 @@ import ITransport from '@huddly/sdk-interfaces/lib/interfaces/ITransport';
 import Logger from '@huddly/sdk-interfaces/lib/statics/Logger';
 
 import MessagePacket, { Message } from './messagepacket';
+import { LibUSBException } from 'usb/dist/usb';
 
 export default class NodeUsbTransport extends EventEmitter implements ITransport {
   private readonly MAX_PACKET_SIZE: number = 16 * 1024;
@@ -195,8 +196,10 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
       this.inEndpoint?.removeListener('data', dataHandler);
     };
 
-    const errorHandler: any = (error: Error) => {
-      Logger.error(`Received error message on read loop!`, error, this.className);
+    const errorHandler: any = (error: LibUSBException) => {
+      if (error.errno != usb.LIBUSB_TRANSFER_NO_DEVICE) {
+        Logger.error(`Received error message on read loop!`, error, this.className);
+      }
       this.close();
     };
 
@@ -292,9 +295,11 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
         this.isPollingActive = false;
         resolve();
       });
-      this.inEndpoint.once('error', (error: any) => {
-        Logger.error('Unable to stop poll!', error, this.className);
-        reject(error);
+      this.inEndpoint.once('error', (error: usb.LibUSBException) => {
+        if (error.errno != usb.LIBUSB_TRANSFER_NO_DEVICE) {
+          Logger.error('Unable to stop poll!', error, this.className);
+          reject(error);
+        }
       });
     });
   }
@@ -344,7 +349,11 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
 
     return new Promise<void>((resolve, reject) => {
       this.releaseEndpoints()
-        .then((_) => this.device.close())
+        .then((_) => {
+          try {
+            this.device.close();
+          } catch {}
+        })
         .then((_) => {
           this.deviceClaimed = false;
           this.emit('CLOSED');
