@@ -100,8 +100,8 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
           );
         }
 
-        Logger.warn('Error Occurred claiming interface!', this.className);
-        return reject(`Error Occurred claiming interface! ${err}`);
+        Logger.warn('Unable to initialize NodeUsbTransport!', this.className);
+        return reject(err);
       }
     });
   }
@@ -126,20 +126,6 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
       return Promise.reject(message);
     }
     return Promise.resolve();
-  }
-
-  async handleResetSeqRead(headerLen: number): Promise<void> {
-    try {
-      Logger.warn(
-        'Reset sequence message sent from camera! Releasing endpoints, stopping event loop and closing device.',
-        this.className
-      );
-      await this.stopEventLoop();
-      await this.close();
-      this.emit('TRANSPORT_RESET');
-    } finally {
-      throw new Error(`Hlink: header is too small ${headerLen}`);
-    }
   }
 
   startListen(): void {
@@ -168,12 +154,8 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     const dataHandler: any = (buffer: Buffer): void => {
       if (currentState === this.READ_STATES.NEW_READ) {
         if (buffer.length < MessagePacket.HEADER_SIZES.HDR_SIZE) {
-          Logger.debug(
-            `Received a reset sequence. Buffer size is ${buffer.length}. Reading will continue......`
-          );
           chunks = [buffer];
           currentState = this.READ_STATES.PENDING_CHUNK;
-          // this.handleResetSeqRead(buffer.length);
           return;
         }
 
@@ -324,7 +306,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
                 if (err.errno !== usb.LIBUSB_ERROR_NO_DEVICE)
                   // Ignore LIBUSB_ERROR_NO_DEVICE since we are releasing/closing device already
                   return reject(
-                    `Unable to release vsc interface! Error: ${err.name} \n${
+                    `Unable to release vsc interface! UsbError: ${err.errno} \n${
                       err.stack || err.message
                     }`
                   );
@@ -383,14 +365,12 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
 
   /********* DEPRICATED/LEGACY METHODS *********/
   receive(): Promise<Buffer> {
-    Logger.warn('Invoked legacy/depricated method "receive"!', this.className);
     throw new Error(
       'Method "receive" is no longer supported! Please use "receiveMessage" instead.'
     );
   }
 
   read(receiveMsg: string = 'unknown', timeout: number = 500): Promise<any> {
-    Logger.warn('Invoked legacy/depricated method "read"!', this.className);
     throw new Error('Method "read" is no longer supported! Please use "receiveMessage" instead.');
   }
 
