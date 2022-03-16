@@ -1,6 +1,6 @@
 import sinon from 'sinon';
 import chai, { expect } from 'chai';
-import chaiAsPromised from 'chai-as-promised'
+import chaiAsPromised from 'chai-as-promised';
 import itParam from 'mocha-param';
 import sinonChai from 'sinon-chai';
 import { usb } from 'usb';
@@ -92,8 +92,8 @@ describe('HuddlyUsbDeviceManager', () => {
   let devicemanager: DeviceDiscoveryManager;
   beforeEach(() => {
     const bar = (): usb.Device[] => {
-      console.log("bar");
-      return mockedDevices as unknown as usb.Device[]
+      console.log('bar');
+      return mockedDevices as unknown as usb.Device[];
     };
     usbDeviceListStub = sinon.stub(DeviceDiscoveryManager.prototype, 'getUnfilteredDeviceList');
     usbDeviceListStub.returns(mockedDevices as unknown as usb.Device[]);
@@ -148,20 +148,20 @@ describe('HuddlyUsbDeviceManager', () => {
       return expect(fetchPromise).to.eventually.be.rejectedWith('Ooops, you cant do this!');
     });
 
-    describe("allowed access errors", () => {
-      itParam("should return false when libusb error_no  ${value} is thrown on open/claim", [usb.LIBUSB_ERROR_ACCESS, usb.LIBUSB_ERROR_BUSY], async (value) => {
+    describe('allowed access errors', () => {
+      itParam('should return false when libusb error_no  ${value} is thrown on open/claim', [usb.LIBUSB_ERROR_ACCESS, usb.LIBUSB_ERROR_BUSY], async (value) => {
         const busyDevice = {
-          open: () => { throw { errno: value } }
+          open: () => { throw { errno: value }; },
         };
         const deviceParamsFetched = devicemanager.fetchAndPopulateDeviceParams(busyDevice as unknown as usb.Device);
         expect(deviceParamsFetched).to.eventually.be.false;
       });
     });
-    describe("other access errors", () => {
+    describe('other access errors', () => {
       const unwantedErrors: Number[] = [usb.LIBUSB_ERROR_IO, usb.LIBUSB_ERROR_INVALID_PARAM, usb.LIBUSB_ERROR_NO_DEVICE, usb.LIBUSB_ERROR_NOT_FOUND, usb.LIBUSB_ERROR_TIMEOUT, usb.LIBUSB_ERROR_NOT_SUPPORTED, usb.LIBUSB_ERROR_OTHER];
-      itParam("should re-throw when libusb error_no ${value} is thrown on open/claim", unwantedErrors, async (value) => {
+      itParam('should re-throw when libusb error_no ${value} is thrown on open/claim', unwantedErrors, async (value) => {
         const busyDevice = {
-          open: () => { throw { errno: value } }
+          open: () => { throw { errno: value }; },
         };
         const deviceParamsFetched = devicemanager.fetchAndPopulateDeviceParams(busyDevice as unknown as usb.Device);
         expect(deviceParamsFetched).to.eventually.be.false;
@@ -182,11 +182,11 @@ describe('HuddlyUsbDeviceManager', () => {
             expect(device.serialNumber).to.equal(mockedDevices[0].serialNumber);
             expect(device.productName).to.equal('Huddly IQ');
             expect(devicemanager.cachedDevices.length).to.equal(1);
-            resolve()
+            resolve();
           });
         });
         devicemanager.registerForHotplugEvents(emitter);
-        usb.emit('attach', mockedDevices[0] as unknown as usb.Device)
+        usb.emit('attach', mockedDevices[0] as unknown as usb.Device);
         return attachPromise;
       });
 
@@ -194,7 +194,7 @@ describe('HuddlyUsbDeviceManager', () => {
         const attachSpy = sinon.spy();
         emitter.on('ATTACH', attachSpy);
         devicemanager.registerForHotplugEvents(emitter);
-        usb.emit('attach', mockedDevices[2] as unknown as usb.Device)
+        usb.emit('attach', mockedDevices[2] as unknown as usb.Device);
         expect(attachSpy.callCount).to.equal(0);
         expect(devicemanager.cachedDevices.length).to.equal(0);
       });
@@ -208,7 +208,7 @@ describe('HuddlyUsbDeviceManager', () => {
     });
 
     describe('#onDetach', () => {
-      let emitter = new EventEmitter();
+      const emitter = new EventEmitter();
 
       it('should emit USB_DETACH with unique id if the device was not cached', () => {
         const detachPromise = new Promise<void>((resolve) => {
@@ -218,7 +218,7 @@ describe('HuddlyUsbDeviceManager', () => {
           });
         });
         devicemanager.registerForHotplugEvents(emitter);
-        usb.emit('detach', mockedDevices[0] as unknown as usb.Device)
+        usb.emit('detach', mockedDevices[0] as unknown as usb.Device);
         return detachPromise;
       });
 
@@ -226,7 +226,7 @@ describe('HuddlyUsbDeviceManager', () => {
         const detachSpy = sinon.spy();
         emitter.on('DETACH', detachSpy);
         devicemanager.registerForHotplugEvents(emitter);
-        usb.emit('detach', mockedDevices[2] as unknown as usb.Device)
+        usb.emit('detach', mockedDevices[2] as unknown as usb.Device);
         expect(detachSpy.callCount).to.equal(0);
       });
     });

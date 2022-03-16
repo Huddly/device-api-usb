@@ -109,7 +109,7 @@ describe('HuddlyDeviceApiUSB', () => {
       });
     });
 
-    describe("boxfish variants", () => {
+    describe('boxfish variants', () => {
       let transportstub: any;
       let getTransportStub: any;
       beforeEach(() => {
@@ -118,13 +118,13 @@ describe('HuddlyDeviceApiUSB', () => {
       afterEach(() => {
         getTransportStub.restore();
       });
-      itParam("should support ${value} when hlink handshake succeeds", Object.keys(supportedMockedDevices), async (value) => {
+      itParam('should support ${value} when hlink handshake succeeds', Object.keys(supportedMockedDevices), async (value) => {
         transportstub.performHlinkHandshake.returns(Promise.resolve());
         getTransportStub = sinon.stub(deviceApi, 'getTransport').returns(transportstub);
         const supported = await deviceApi.getValidatedTransport(supportedMockedDevices[value] as unknown as usb.Device);
         expect(supported).to.be.instanceof(NodeUsbTransport);
       });
-      itParam("should not support ${value} when hlink handshake fails", Object.keys(supportedMockedDevices), async (value) => {
+      itParam('should not support ${value} when hlink handshake fails', Object.keys(supportedMockedDevices), async (value) => {
         transportstub.performHlinkHandshake.returns(Promise.reject());
         getTransportStub = sinon.stub(deviceApi, 'getTransport').returns(transportstub);
         const supported = await deviceApi.getValidatedTransport(supportedMockedDevices[value] as unknown as usb.Device);
@@ -145,7 +145,7 @@ describe('HuddlyDeviceApiUSB', () => {
             endpoints: {
               find: () => {}
             }
-          }
+          };
         }
       }
     };
@@ -160,15 +160,15 @@ describe('HuddlyDeviceApiUSB', () => {
 
     it('should fail when the usb device is lacking serial number', async () => {
       try {
-        await deviceApi.getTransport({} as unknown as usb.Device)
+        await deviceApi.getTransport({} as unknown as usb.Device);
         expect(false).to.be.true; // It should not reach this point
       } catch (e) {
-        expect(e).to.equal("Transport cannot be initialized since the provided usb device instance is lacking serial number [undefined]!");
+        expect(e).to.equal('Transport cannot be initialized since the provided usb device instance is lacking serial number [undefined]!');
       }
     });
 
     it('should initialize transport with the given device instance', async () => {
-      const transport = await deviceApi.getTransport(usbDevice as unknown as usb.Device)
+      const transport = await deviceApi.getTransport(usbDevice as unknown as usb.Device);
       expect(transport).to.be.instanceof(NodeUsbTransport);
       expect(transport.device).to.deep.equal(usbDevice);
     });

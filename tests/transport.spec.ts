@@ -1,6 +1,6 @@
 import chai, { expect } from 'chai';
 import sinonChai from 'sinon-chai';
-import chaiAsPromised from 'chai-as-promised'
+import chaiAsPromised from 'chai-as-promised';
 import { usb } from 'usb';
 import NodeUsbTransport from './../src/transport';
 import sinon, { SinonSandbox, SinonStub } from 'sinon';
@@ -33,8 +33,8 @@ const createNewMockDevice = () => {
         ]
       }
     ]
-  }
-}
+  };
+};
 
 describe('UsbTransport', () => {
   let transport: NodeUsbTransport;
@@ -70,7 +70,7 @@ describe('UsbTransport', () => {
       const unclaimableInterfaceDevice = {
         open: () => { },
         interfaces: [
-          { claim: sinon.stub().throws({ errno: usb.LIBUSB_ERROR_BUSY, message: "Cant claim it!" }), descriptor: { bInterfaceClass: 255 } }
+          { claim: sinon.stub().throws({ errno: usb.LIBUSB_ERROR_BUSY, message: 'Cant claim it!' }), descriptor: { bInterfaceClass: 255 } }
         ]
       };
       transport = new NodeUsbTransport(unclaimableInterfaceDevice as unknown as usb.Device);
@@ -81,8 +81,8 @@ describe('UsbTransport', () => {
 
     it('should reject with proper error message when device is occupied by a different process', () => {
       const busyDevice = {
-        open: sinon.stub().throws({ errno: usb.LIBUSB_ERROR_ACCESS, message: "Cant claim it!" })
-      }
+        open: sinon.stub().throws({ errno: usb.LIBUSB_ERROR_ACCESS, message: 'Cant claim it!' })
+      };
       transport = new NodeUsbTransport(busyDevice as unknown as usb.Device);
       return expect(transport.init())
       .to.eventually.be.rejectedWith('Unable to claim usb interface. Please make sure the device is not used by another process!');
@@ -90,8 +90,8 @@ describe('UsbTransport', () => {
 
     it('should reject if some other error occurs when claiming the interface', () => {
       const busyDevice = {
-        open: sinon.stub().throws({ errno: usb.LIBUSB_ERROR_OTHER, message: "Cant open it!" })
-      }
+        open: sinon.stub().throws({ errno: usb.LIBUSB_ERROR_OTHER, message: 'Cant open it!' })
+      };
       transport = new NodeUsbTransport(busyDevice as unknown as usb.Device);
       return expect(transport.init())
       .to.eventually.be.rejectedWith('Cant open it!');
@@ -146,7 +146,7 @@ describe('UsbTransport', () => {
     after(() => {
       outTransfer.restore();
       inTransfer.restore();
-    })
+    });
 
     it('should correctly perform hlink salutation process', async () => {
       outTransfer.callsFake((message, cb) => {
@@ -188,7 +188,7 @@ describe('UsbTransport', () => {
     it('should process incoming data and emit result', async () => {
       const encodedMsg = MessagePacket.createMessage('hello-msg', Buffer.from('Greetings!'));
       await transport.init();
-      let inEndpointStub: sinon.SinonStub = transport.inEndpoint.on as unknown as sinon.SinonStub;
+      const inEndpointStub: sinon.SinonStub = transport.inEndpoint.on as unknown as sinon.SinonStub;
       inEndpointStub.withArgs('data')
         .onCall(0).callsFake((msg: String, cb: Function) => cb(encodedMsg));
       const emitSpy = sinon.spy(transport, 'emit');
@@ -203,7 +203,7 @@ describe('UsbTransport', () => {
     it('should call #close on error message', async () => {
       const spy = sinon.spy(transport, 'close');
       await transport.init();
-      let onDataStub: sinon.SinonStub = transport.inEndpoint.once as unknown as sinon.SinonStub;
+      const onDataStub: sinon.SinonStub = transport.inEndpoint.once as unknown as sinon.SinonStub;
       onDataStub.withArgs('error').callsFake((msg, cb) => cb('Error -1'));
       transport.startListen();
       expect(spy).to.have.been.calledOnce;
@@ -211,7 +211,7 @@ describe('UsbTransport', () => {
 
     it('should remove data listener on close event', async () => {
       await transport.init();
-      let removeListenerStub: sinon.SinonStub = transport.inEndpoint.removeListener as unknown as sinon.SinonStub;
+      const removeListenerStub: sinon.SinonStub = transport.inEndpoint.removeListener as unknown as sinon.SinonStub;
       transport.startListen();
       transport.emit('CLOSED');
       expect(removeListenerStub).to.have.been.calledOnce;
@@ -392,7 +392,7 @@ describe('UsbTransport', () => {
     let inEndpointStub: sinon.SinonStub;
     beforeEach(async () => {
       await transport.init();
-      inEndpointStub = transport.inEndpoint.transfer as unknown as sinon.SinonStub
+      inEndpointStub = transport.inEndpoint.transfer as unknown as sinon.SinonStub;
     });
     afterEach(() => {
       inEndpointStub.restore();
@@ -419,7 +419,7 @@ describe('UsbTransport', () => {
     let outEndpointStub: sinon.SinonStub;
     beforeEach(async () => {
       await transport.init();
-      outEndpointStub = transport.outEndpoint.transfer as unknown as sinon.SinonStub
+      outEndpointStub = transport.outEndpoint.transfer as unknown as sinon.SinonStub;
     });
     afterEach(() => {
       outEndpointStub.restore();
@@ -446,7 +446,7 @@ describe('UsbTransport', () => {
   describe('#stopUsbEndpointPoll', () => {
     it('should call stop poll on inEndpoint', async () => {
       await transport.init();
-      let stopPolStub = transport.inEndpoint.stopPoll as unknown as sinon.SinonStub
+      const stopPolStub = transport.inEndpoint.stopPoll as unknown as sinon.SinonStub;
       stopPolStub.callsFake((cb) => { cb(); });
       return expect(transport.stopUsbEndpointPoll()).to.eventually.be.fulfilled;
     });
@@ -510,14 +510,14 @@ describe('UsbTransport', () => {
       stopPollStub.restore();
     });
     it('should stop endpoint poll and release the vsc interface', async () => {
-      releaseStub.yields(null);
+      releaseStub.yields(undefined);
       await transport.releaseEndpoints();
       expect(stopPollStub).to.have.been.called;
       expect(releaseStub).to.have.been.called;
     });
     it('should reject if stopping endpoint poll fails', () => {
       stopPollStub.rejects(new Error('Uuups, problem!'));
-      return expect(transport.releaseEndpoints()).to.eventually.be.rejectedWith('Uuups, problem!')
+      return expect(transport.releaseEndpoints()).to.eventually.be.rejectedWith('Uuups, problem!');
     });
     it('should ignore LIBUSB_ERROR_NO_DEVICE when releasing endpoint fails', () => {
       releaseStub.yields({ errno: usb.LIBUSB_ERROR_NO_DEVICE});
@@ -549,7 +549,7 @@ describe('UsbTransport', () => {
     });
     it('should emit closed event', async () => {
       const spy = sinon.spy();
-      transport.on('CLOSED', spy)
+      transport.on('CLOSED', spy);
       await transport.close();
       expect(spy).to.have.been.calledOnce;
     });
