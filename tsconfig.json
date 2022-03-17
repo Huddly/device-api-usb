@@ -6,6 +6,7 @@
     "sourceMap": true,
     "esModuleInterop": true,
     "strictNullChecks": false,
+    "skipLibCheck": true,
     "lib": [
       "es6"
     ],
@@ -29,7 +30,8 @@
     "./tests/**/*"
   ],
   "exclude": [
-    "node_modules",
+    "node_modules/**/*",
+    "node_modules/@types/**/*",
     "coverage"
   ]
 }
