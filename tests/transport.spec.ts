@@ -3,10 +3,12 @@ import sinonChai from 'sinon-chai';
 import chaiAsPromised from 'chai-as-promised';
 import { usb } from 'usb';
 import NodeUsbTransport from './../src/transport';
-import sinon, { SinonSandbox, SinonStub } from 'sinon';
+import sinon, { SinonStub } from 'sinon';
 import MessagePacket from './../src/messagepacket';
-import crypto, { randomBytes } from 'crypto';
-import { Endpoint, InEndpoint, OutEndpoint } from 'usb/dist/usb/endpoint';
+import crypto from 'crypto';
+import { InEndpoint, OutEndpoint } from 'usb/dist/usb/endpoint';
+import rewire from 'rewire';
+
 
 chai.should();
 chai.use(sinonChai);
@@ -37,6 +39,10 @@ const createNewMockDevice = () => {
 };
 
 describe('UsbTransport', () => {
+  const rewireModule = rewire('./../lib/src/transport');
+  const rewireClass = rewireModule.__get__('NodeUsbTransport');
+  const rewiredInstance = new rewireClass();
+
   let transport: NodeUsbTransport;
   let mockedDevice: any;
   beforeEach(() => {
@@ -180,6 +186,113 @@ describe('UsbTransport', () => {
       } catch (error) {
         expect(error).to.equal('Hlink handshake has failed! Wrong version. Expected HLink v0, got N/A.');
       }
+    });
+  });
+
+  describe('#readLoopReset', () => {
+    it('should reset read loop helper variables', () => {
+      rewiredInstance.readLoopChunks = [ Buffer.from('hi') ];
+
+      rewiredInstance.readLoopReset();
+
+      expect(rewiredInstance.readLoopChunks.length).to.equal(0);
+      expect(rewiredInstance.currentBufferReadSize).to.equal(0);
+      expect(rewiredInstance.expectedReadBufferSize).to.equal(-1);
+      expect(rewiredInstance.currentStateOfReadLoop).to.equal(rewiredInstance.READ_STATES.NEW_READ);
+    });
+  });
+
+  describe('#parseAndEmitFullyRetrievedMessage', () => {
+    it('should parse and emit the encoded message received from device', () => {
+      const encodedMsg = MessagePacket.createMessage('hello-msg', Buffer.from('Greetings!'));
+      const emitSpy = sinon.spy();
+      rewiredInstance.on('hello-msg', emitSpy);
+      const resetLoopSpy = sinon.spy(rewiredInstance, 'readLoopReset');
+      rewiredInstance.readLoopChunks = [encodedMsg];
+      rewiredInstance.parseAndEmitFullyRetrievedMessage();
+      expect(emitSpy).to.have.been.called;
+      expect(emitSpy.getCall(0).args[0]['message']).to.equal('hello-msg');
+      expect(resetLoopSpy).to.have.been.called;
+    });
+  });
+
+  describe('#continueReadLogic', () => {
+    let parseStub: SinonStub;
+    beforeEach(() => {
+      parseStub = sinon.stub(rewiredInstance, 'parseAndEmitFullyRetrievedMessage');
+    });
+    afterEach(() => {
+      parseStub.restore();
+    });
+    it('should update readloop state to pending when complete buffer is not read yet', () => {
+      rewiredInstance.currentBufferReadSize = 1;
+      rewiredInstance.expectedReadBufferSize = 2;
+      rewiredInstance.currentStateOfReadLoop = undefined;
+
+      rewiredInstance.continueReadLogic();
+
+      expect(rewiredInstance.currentStateOfReadLoop).to.equal(rewiredInstance.READ_STATES.PENDING_CHUNK);
+    });
+
+    it('should call #parseAndEmitFullyRetrievedMessage when buffer is fully received', () => {
+      rewiredInstance.currentBufferReadSize = 2;
+      rewiredInstance.expectedReadBufferSize = 2;
+      rewiredInstance.currentStateOfReadLoop = rewiredInstance.READ_STATES.PENDING_CHUNK;
+
+      rewiredInstance.continueReadLogic();
+
+      expect(parseStub).to.have.been.called;
+    });
+  });
+
+  describe('#onDataRetrievedHandler', () => {
+    let continueLogicStub: SinonStub;
+    beforeEach(() => {
+      continueLogicStub = sinon.stub(rewiredInstance, 'continueReadLogic');
+      rewiredInstance.readLoopChunks = [];
+    });
+    afterEach(() => {
+      continueLogicStub.restore();
+    });
+    describe('on new read', () => {
+      beforeEach(() => {
+        rewiredInstance.currentStateOfReadLoop = rewiredInstance.READ_STATES.NEW_READ;
+      });
+      describe('on "reset sequence" received', () => {
+        it('should only append received buffer to the read chunks', () => {
+          rewiredInstance.onDataRetrievedHandler(Buffer.from('hi'));
+
+          expect(rewiredInstance.readLoopChunks.length).to.equal(1);
+          expect(rewiredInstance.readLoopChunks).to.deep.equal([Buffer.from('hi')]);
+          expect(rewiredInstance.currentStateOfReadLoop).to.equal(rewiredInstance.READ_STATES.PENDING_CHUNK);
+        });
+      });
+      it('should parse buffer, populate read loop chunk and set the current read size', () => {
+        const encodedMsg = MessagePacket.createMessage('hello-msg', Buffer.from('Greetings!'));
+        rewiredInstance.onDataRetrievedHandler(encodedMsg);
+
+        expect(rewiredInstance.expectedReadBufferSize).to.equals(35);
+        expect(rewiredInstance.readLoopChunks).to.deep.equal([encodedMsg]);
+        expect(rewiredInstance.currentBufferReadSize).to.equal(35);
+      });
+    });
+    describe('on pending read', () => {
+      const buffersToProcess = [
+        Buffer.from('hi'),
+        Buffer.from('you!')
+      ];
+      beforeEach(() => {
+        rewiredInstance.currentStateOfReadLoop = rewiredInstance.READ_STATES.PENDING_CHUNK;
+        rewiredInstance.readLoopChunks = [buffersToProcess[0]];
+        rewiredInstance.currentBufferReadSize = buffersToProcess[0].length;
+      });
+      it('should append new buffer to the read loop chunks and update current read size', () => {
+        rewiredInstance.onDataRetrievedHandler(buffersToProcess[1]);
+
+        expect(rewiredInstance.readLoopChunks.length).to.equal(buffersToProcess.length);
+        expect(rewiredInstance.readLoopChunks).to.deep.equal(buffersToProcess);
+        expect(rewiredInstance.currentBufferReadSize).to.equal(buffersToProcess[0].length + buffersToProcess[1].length);
+      });
     });
   });
 
