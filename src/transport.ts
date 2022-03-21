@@ -20,6 +20,12 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
   private _device: usb.Device;
   private isPollingActive: boolean = false;
 
+  /***** Read Event Loop Helper Variables ******/
+  private readLoopChunks: Buffer[] = [];
+  private currentBufferReadSize: number;
+  private expectedReadBufferSize: number;
+  private currentStateOfReadLoop: String;
+
   /**
    * A boolean representation of the device being opened and its corresponding
    * vsc interface claimed for channeling the communication.
@@ -128,51 +134,53 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     return Promise.resolve();
   }
 
+  readLoopReset(): void {
+    this.readLoopChunks.splice(0, this.readLoopChunks.length);
+    this.currentBufferReadSize = 0;
+    this.expectedReadBufferSize = -1;
+    this.currentStateOfReadLoop = this.READ_STATES.NEW_READ;
+  }
+
+  private parseAndEmitFullyRetrievedMessage(): void {
+    const finalBuffer: Buffer = Buffer.concat(this.readLoopChunks);
+    const result: Message = MessagePacket.parseMessage(finalBuffer);
+    this.emit(result.message, result);
+    this.readLoopReset();
+  }
+
+  private continueReadLogic(): void {
+    if (this.currentBufferReadSize < this.expectedReadBufferSize) {
+      this.currentStateOfReadLoop = this.READ_STATES.PENDING_CHUNK;
+    } else {
+      this.parseAndEmitFullyRetrievedMessage();
+    }
+  }
+
+  private onDataRetrievedHandler(buffer: Buffer): void {
+    if (this.currentStateOfReadLoop === this.READ_STATES.NEW_READ) {
+      if (buffer.length < MessagePacket.HEADER_SIZES.HDR_SIZE) {
+        this.readLoopChunks = [buffer];
+        this.currentStateOfReadLoop = this.READ_STATES.PENDING_CHUNK;
+        return;
+      }
+
+      this.expectedReadBufferSize = MessagePacket.parseMessage(buffer).totalSize();
+      this.readLoopChunks = [buffer];
+      this.currentBufferReadSize = buffer.length;
+      this.continueReadLogic();
+    } else {
+      this.readLoopChunks.push(Buffer.from(buffer));
+      this.currentBufferReadSize += buffer.length;
+      this.continueReadLogic();
+    }
+  }
+
   startListen(): void {
-    let chunks: Buffer[] = [];
-    let currentSize: number = 0;
-    let expectedSize: number = -1;
-    let currentState: string = this.READ_STATES.NEW_READ;
-
-    const parseAndEmitCompleteMessage: Function = (): void => {
-      currentState = this.READ_STATES.NEW_READ;
-      const finalBuffer: Buffer = Buffer.concat(chunks);
-      const result: Message = MessagePacket.parseMessage(finalBuffer);
-      chunks.splice(0, chunks.length); // Empty the array
-      currentSize = 0;
-      this.emit(result.message, result);
-    };
-
-    const continueReadLogic: Function = (): void => {
-      if (currentSize < expectedSize) {
-        currentState = this.READ_STATES.PENDING_CHUNK;
-      } else {
-        parseAndEmitCompleteMessage();
-      }
-    };
-
-    const dataHandler: any = (buffer: Buffer): void => {
-      if (currentState === this.READ_STATES.NEW_READ) {
-        if (buffer.length < MessagePacket.HEADER_SIZES.HDR_SIZE) {
-          chunks = [buffer];
-          currentState = this.READ_STATES.PENDING_CHUNK;
-          return;
-        }
-
-        expectedSize = MessagePacket.parseMessage(buffer).totalSize();
-        chunks = [buffer];
-        currentSize = buffer.length;
-        continueReadLogic();
-      } else {
-        chunks.push(Buffer.from(buffer));
-        currentSize += buffer.length;
-        continueReadLogic();
-      }
-    };
+    this.readLoopReset();
 
     const closeHandler: Function = () => {
       Logger.debug('Removing transport data event subscription.', this.className);
-      this.inEndpoint?.removeListener('data', dataHandler);
+      this.inEndpoint?.removeListener('data', this.onDataRetrievedHandler);
     };
 
     const errorHandler: any = (error: LibUSBException) => {
@@ -183,7 +191,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     };
 
     // Setup event handlers
-    this.inEndpoint.on('data', dataHandler);
+    this.inEndpoint.on('data', this.onDataRetrievedHandler.bind(this));
     this.inEndpoint.once('error', errorHandler);
     this.once('ERROR', errorHandler);
     this.once('CLOSED', closeHandler);
