@@ -19,6 +19,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
   private readonly className: string = 'Device-API-USB Transport';
   private _device: usb.Device;
   private isPollingActive: boolean = false;
+  private hlinkProtocolVersion: string = 'HLink v0';
 
   /***** Read Event Loop Helper Variables ******/
   private readLoopChunks: Buffer[] = [];
@@ -126,9 +127,8 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     await this.sendChunk(Buffer.alloc(1, 0x00));
     const res = await this.readChunk(1024);
     const decodedMsg = res.toString('utf8');
-    const expected: string = 'HLink v0';
-    if (decodedMsg !== expected) {
-      const message: string = `Hlink handshake has failed! Wrong version. Expected ${expected}, got ${decodedMsg}.`;
+    if (decodedMsg !== this.hlinkProtocolVersion) {
+      const message: string = `Hlink handshake has failed! Wrong version. Expected ${this.hlinkProtocolVersion}, got ${decodedMsg}.`;
       return Promise.reject(message);
     }
     return Promise.resolve();
@@ -159,9 +159,14 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
   private onDataRetrievedHandler(buffer: Buffer): void {
     if (this.currentStateOfReadLoop === this.READ_STATES.NEW_READ) {
       if (buffer.length < MessagePacket.HEADER_SIZES.HDR_SIZE) {
-        this.readLoopChunks = [buffer];
-        this.currentStateOfReadLoop = this.READ_STATES.PENDING_CHUNK;
-        return;
+        this.inEndpoint?.removeListener('data', this.onDataRetrievedHandler);
+        if (buffer.length === 8 && buffer.toString('utf8') === this.hlinkProtocolVersion) {
+          throw new Error('Received a hlink reset sequence. Read loop cannot continue!');
+        }
+
+        throw new Error(
+          `Received an incomplete message on start of read! Message size: ${buffer.length}. Unable to proceed, exiting ungracefully!`
+        );
       }
 
       this.expectedReadBufferSize = MessagePacket.parseMessage(buffer).totalSize();
