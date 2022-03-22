@@ -232,7 +232,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
 
   write(cmd: string, payload: any = Buffer.alloc(0)): Promise<any> {
     const encodedMsgBuffer: Buffer = MessagePacket.createMessage(cmd, payload);
-    return this.transfer(encodedMsgBuffer);
+    return this.sendChunk(encodedMsgBuffer);
   }
 
   subscribe(command: string): Promise<any> {
@@ -241,13 +241,6 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
 
   unsubscribe(command: string): Promise<any> {
     return this.write('hlink-mb-unsubscribe', command);
-  }
-
-  async transfer(messageBuffer: Buffer): Promise<void> {
-    for (let i = 0; i < messageBuffer.length; i += this.MAX_PACKET_SIZE) {
-      const chunk = messageBuffer.slice(i, i + this.MAX_PACKET_SIZE);
-      await this.sendChunk(chunk);
-    }
   }
 
   async readChunk(packetSize: number = this.MAX_PACKET_SIZE): Promise<any> {
