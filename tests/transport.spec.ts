@@ -455,7 +455,7 @@ describe('UsbTransport', () => {
   describe('#write', () => {
     let transferStub;
     beforeEach(async () => {
-      transferStub = sinon.stub(transport, 'transfer').returns(Promise.resolve());
+      transferStub = sinon.stub(transport, 'sendChunk').returns(Promise.resolve());
       await transport.init();
     });
 
@@ -478,26 +478,6 @@ describe('UsbTransport', () => {
         await transport.unsubscribe('test-unsubscribe');
         expect(transferStub).to.have.calledWith(MessagePacket.createMessage('hlink-mb-unsubscribe', 'test-unsubscribe'));
       });
-    });
-  });
-
-  describe('#transfer', () => {
-    let sendChunkStub: SinonStub;
-    beforeEach(() => {
-      sendChunkStub = sinon.stub(NodeUsbTransport.prototype, 'sendChunk');
-    });
-    afterEach(() => sendChunkStub.restore());
-
-    it('should transfer buffer in chunks when buffer is larger than MAX_PACKET_SIZE', async () => {
-      const command = 'ECHO';
-      const payloadLen = (MAX_PACKET_SIZE - command.length - 16) * 2;
-      const payload = crypto.randomBytes(payloadLen);
-      const msg = MessagePacket.createMessage(command, payload);
-
-      await transport.init();
-      await transport.transfer(msg);
-      expect(sendChunkStub.callCount).to.be.equal(2);
-      expect(sendChunkStub.firstCall.args[0].length).to.equal(MAX_PACKET_SIZE);
     });
   });
 
