@@ -258,7 +258,7 @@ describe('UsbTransport', () => {
       beforeEach(() => {
         rewiredInstance.currentStateOfReadLoop = rewiredInstance.READ_STATES.NEW_READ;
       });
-      describe('on "reset sequence" received', () => {
+      describe.skip('on "reset sequence" received', () => {
         it('should only append received buffer to the read chunks', () => {
           rewiredInstance.onDataRetrievedHandler(Buffer.from('hi'));
 
