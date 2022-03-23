@@ -258,13 +258,27 @@ describe('UsbTransport', () => {
       beforeEach(() => {
         rewiredInstance.currentStateOfReadLoop = rewiredInstance.READ_STATES.NEW_READ;
       });
-      describe.skip('on "reset sequence" received', () => {
-        it('should only append received buffer to the read chunks', () => {
-          rewiredInstance.onDataRetrievedHandler(Buffer.from('hi'));
-
-          expect(rewiredInstance.readLoopChunks.length).to.equal(1);
-          expect(rewiredInstance.readLoopChunks).to.deep.equal([Buffer.from('hi')]);
-          expect(rewiredInstance.currentStateOfReadLoop).to.equal(rewiredInstance.READ_STATES.PENDING_CHUNK);
+      describe('on "reset sequence" received', () => {
+        it('should remove data event listener', () => {
+          rewiredInstance.inEndpoint = {
+            removeListener: sinon.stub()
+          };
+          const stub: sinon.SinonStub = rewiredInstance.inEndpoint.removeListener;
+          const badFn = () => rewiredInstance.onDataRetrievedHandler(Buffer.from('hi'));
+          expect(badFn).throws;
+          try { badFn(); } catch {} // call the function to make sure the stub is invoked
+          expect(stub).to.have.been.calledOnce;
+          expect(stub.getCall(0).args[0]).to.equal('data');
+        });
+        it('should say that hlink reset seq received when buffer is an hlink reset seq', () => {
+          const hlinkRes = Buffer.from('HLink v0');
+          const badFn = () => rewiredInstance.onDataRetrievedHandler(hlinkRes);
+          expect(badFn).throws('Received a hlink reset sequence. Read loop cannot continue!');
+        });
+        it('should throw error telling that an incomplete message was received', () => {
+          const buff = Buffer.from('0000');
+          const badFn = () => rewiredInstance.onDataRetrievedHandler(buff);
+          expect(badFn).throws(`Received an incomplete message on start of read! Message size: ${buff.length}. Unable to proceed, exiting ungracefully!`);
         });
       });
       it('should parse buffer, populate read loop chunk and set the current read size', () => {
@@ -453,9 +467,10 @@ describe('UsbTransport', () => {
   });
 
   describe('#write', () => {
-    let transferStub;
+    let transferStub: SinonStub;
     beforeEach(async () => {
-      transferStub = sinon.stub(transport, 'sendChunk').returns(Promise.resolve());
+      transferStub = sinon.stub(transport, 'sendChunk');
+      transferStub.returns(Promise.resolve());
       await transport.init();
     });
 
@@ -464,6 +479,38 @@ describe('UsbTransport', () => {
     it('should package the message command and its payload and call transfer', async () => {
       await transport.write('echo-test', Buffer.alloc(0));
       expect(transferStub).to.have.calledWith(MessagePacket.createMessage('echo-test', Buffer.alloc(0)));
+    });
+
+    describe('on LIBUSB_ERROR_IO', () => {
+      let splitStub: SinonStub;
+      beforeEach(() => {
+        splitStub = sinon.stub(transport, 'splitAndSendPayloadInChunks');
+        splitStub.resolves();
+      });
+      afterEach(() => {
+        splitStub.restore();
+      });
+      it('should fallback to splitting data in chunks', async () => {
+        transferStub.rejects(new Error('LIBUSB_ERROR_IO'));
+        await transport.write('echo-test', Buffer.alloc(16 * 1024 + 1));
+        expect(splitStub).to.have.been.calledOnce;
+      });
+      it('should reject if even the fallback method fails with some other error', () => {
+        transferStub.rejects(new Error('LIBUSB_ERROR_IO'));
+        splitStub.rejects(new Error('LIBUSB_ERROR_OTHER'));
+        return expect(transport.write('echo-test', Buffer.alloc(16 * 1024 + 1)))
+        .to.eventually.be.rejectedWith('LIBUSB_ERROR_OTHER');
+      });
+      it('should reject if size of buffer is still below MAX_PACKET_SIZE', () => {
+        transferStub.rejects(new Error('LIBUSB_ERROR_IO'));
+        return expect(transport.write('echo-test', Buffer.alloc(1))).to.eventually.be.rejectedWith('LIBUSB_ERROR_IO');
+      });
+    });
+    describe('on other error', () => {
+      it('should reject with original error', () => {
+        transferStub.rejects(new Error('LIBUSB_ERROR_OTHER'));
+        return expect(transport.write('echo-test', Buffer.alloc(1))).to.eventually.be.rejectedWith('LIBUSB_ERROR_OTHER');
+      });
     });
 
     describe('#subscribe', () => {
@@ -478,6 +525,26 @@ describe('UsbTransport', () => {
         await transport.unsubscribe('test-unsubscribe');
         expect(transferStub).to.have.calledWith(MessagePacket.createMessage('hlink-mb-unsubscribe', 'test-unsubscribe'));
       });
+    });
+  });
+
+  describe('#splitAndSendPayloadInChunks', () => {
+    let sendChunkStub: SinonStub;
+    beforeEach(() => {
+      sendChunkStub = sinon.stub(NodeUsbTransport.prototype, 'sendChunk');
+    });
+    afterEach(() => sendChunkStub.restore());
+
+    it('should transfer buffer in chunks', async () => {
+      const command = 'ECHO';
+      const payloadLen = (MAX_PACKET_SIZE - command.length - 16) * 2;
+      const payload = crypto.randomBytes(payloadLen);
+      const msg = MessagePacket.createMessage(command, payload);
+
+      await transport.init();
+      await transport.splitAndSendPayloadInChunks(msg);
+      expect(sendChunkStub.callCount).to.be.equal(2);
+      expect(sendChunkStub.firstCall.args[0].length).to.equal(MAX_PACKET_SIZE);
     });
   });
 
@@ -504,7 +571,7 @@ describe('UsbTransport', () => {
         cb({errno: usb.LIBUSB_ERROR_OVERFLOW, message: 'OVERFLOW!'});
       });
       return expect(transport.readChunk(1))
-      .to.eventually.be.rejectedWith(`Unable to read data from device (LibUSBException: ${usb.LIBUSB_ERROR_OVERFLOW})! \n OVERFLOW`);
+      .to.eventually.be.rejectedWith(`Unable to read data from device (LibUSBException: ${usb.LIBUSB_ERROR_OVERFLOW})! OVERFLOW`);
     });
   });
 
@@ -532,7 +599,7 @@ describe('UsbTransport', () => {
         cb({errno: usb.LIBUSB_ERROR_OVERFLOW, message: 'OVERFLOW!'});
       });
       return expect(transport.sendChunk(Buffer.from('send-me')))
-      .to.eventually.be.rejectedWith(`Unable to write data to device (LibUSBException: ${usb.LIBUSB_ERROR_OVERFLOW})! \n OVERFLOW`);
+      .to.eventually.be.rejectedWith(`Unable to write data to device (LibUSBException: ${usb.LIBUSB_ERROR_OVERFLOW})! OVERFLOW`);
     });
   });
 
