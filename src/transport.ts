@@ -232,7 +232,29 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
 
   write(cmd: string, payload: any = Buffer.alloc(0)): Promise<any> {
     const encodedMsgBuffer: Buffer = MessagePacket.createMessage(cmd, payload);
-    return this.sendChunk(encodedMsgBuffer);
+    return new Promise<void>((resolve, reject) => {
+      this.sendChunk(encodedMsgBuffer)
+        .then((_) => resolve())
+        .catch((e: Error) => {
+          if (
+            e.message.includes('LIBUSB_ERROR_IO') &&
+            encodedMsgBuffer.length > this.MAX_PACKET_SIZE
+          ) {
+            this.splitAndSendPayloadInChunks(encodedMsgBuffer)
+              .then((_) => resolve())
+              .catch((e) => reject(e));
+          } else {
+            reject(e);
+          }
+        });
+    });
+  }
+
+  async splitAndSendPayloadInChunks(payload: Buffer): Promise<void> {
+    for (let i = 0; i < payload.length; i += this.MAX_PACKET_SIZE) {
+      const chunk = payload.slice(i, i + this.MAX_PACKET_SIZE);
+      await this.sendChunk(chunk);
+    }
   }
 
   subscribe(command: string): Promise<any> {
@@ -249,7 +271,9 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
       this.inEndpoint.transfer(packetSize, (err: usb.LibUSBException, data: Buffer) => {
         if (err)
           return reject(
-            `Unable to read data from device (LibUSBException: ${err.errno})! \n ${err.message}`
+            new Error(
+              `Unable to read data from device (LibUSBException: ${err.errno})! ${err.message}`
+            )
           );
         resolve(data);
       });
@@ -259,10 +283,12 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
   async sendChunk(chunk: Buffer): Promise<void> {
     if (!this.outEndpoint) return Promise.reject('Device outEndpoint not initialized!');
     return new Promise((resolve, reject) => {
-      this.outEndpoint.transfer(chunk, (err: usb.LibUSBException, dataSent: number) => {
+      this.outEndpoint.transfer(chunk, (err: usb.LibUSBException) => {
         if (err)
           return reject(
-            `Unable to write data to device (LibUSBException: ${err.errno})! \n ${err.message}`
+            new Error(
+              `Unable to write data to device (LibUSBException: ${err.errno})! ${err.message}`
+            )
           );
         resolve();
       });
