@@ -92,7 +92,7 @@
     "url": "https://github.com/Huddly/device-api-usb/issues"
   },
   "dependencies": {
-    "@huddly/sdk-interfaces": "^0.1.1",
+    "@huddly/sdk-interfaces": "^0.2.0",
     "@types/node": "^15.12.2",
     "await-sleep": "0.0.1",
     "chalk": "^4.1.2",
@@ -107,7 +107,6 @@
     "@types/rewire": "^2.5.28",
     "@types/sinon": "^10.0.11",
     "@types/sinon-chai": "^3.2.8",
-    "azure-storage": "^2.10.6",
     "chai": "^4.3.4",
     "chai-as-promised": "^7.1.1",
     "chai-things": "^0.2.0",
@@ -123,7 +122,6 @@
     "sinon": "^11.1.1",
     "sinon-chai": "^3.7.0",
     "source-map-support": "^0.5.19",
-    "tar": "^6.1.0",
     "ts-node": "^10.0.0",
     "tslint": "^6.1.1"
   }
