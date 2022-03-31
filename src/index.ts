@@ -40,7 +40,7 @@ export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
 
   async getValidatedTransport(device: usb.Device): Promise<ITransport> {
     if (
-      [HuddlyHEX.GO_PID, HuddlyHEX.L1_PID, HuddlyHEX.BASE_PID].includes(
+      [HuddlyHEX.GO_PID, HuddlyHEX.L1_PID, HuddlyHEX.S1_PID, HuddlyHEX.BASE_PID].includes(
         (device as any as UsbDevice).productId
       )
     ) {

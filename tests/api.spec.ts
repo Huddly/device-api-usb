@@ -22,6 +22,10 @@ const unsupportedMockedDevices = {
     serialNumber: 'L123456789',
     productId: HuddlyHEX.L1_PID
   },
+  see: {
+    serialNumber: 'S123456789',
+    productId: HuddlyHEX.S1_PID
+  },
   base: {
     serialNumber: '1111111',
     productId: HuddlyHEX.BASE_PID
@@ -98,6 +102,13 @@ describe('HuddlyDeviceApiUSB', () => {
     describe('for Huddly L1', () => {
       it('should not support Huddly L1', async () => {
         const transport = await deviceApi.getValidatedTransport(unsupportedMockedDevices.base as unknown as usb.Device);
+        expect(transport).to.be.undefined;
+      });
+    });
+
+    describe('for Huddly S1', () => {
+      it('should not support Huddly L1', async () => {
+        const transport = await deviceApi.getValidatedTransport(unsupportedMockedDevices.see as unknown as usb.Device);
         expect(transport).to.be.undefined;
       });
     });
