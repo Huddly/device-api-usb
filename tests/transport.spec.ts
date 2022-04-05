@@ -724,7 +724,7 @@ describe('UsbTransport', () => {
     });
   });
 
-  describe('#depricated', () => {
+  describe('#deprecated', () => {
     describe('#receive', () => {
       it('should not be supported', () => expect(transport.receive).to.throw('Method "receive" is no longer supported! Please use "receiveMessage" instead.'));
     });

@@ -395,7 +395,7 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
     return this;
   }
 
-  /********* DEPRICATED/LEGACY METHODS *********/
+  /********* DEPRECATED/LEGACY METHODS *********/
   receive(): Promise<Buffer> {
     throw new Error(
       'Method "receive" is no longer supported! Please use "receiveMessage" instead.'
