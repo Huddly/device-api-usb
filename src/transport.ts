@@ -116,7 +116,12 @@ export default class NodeUsbTransport extends EventEmitter implements ITransport
   initEventLoop(): void {
     if (!this.isPollingActive) {
       Logger.debug('Starting event loop!', this.className);
-      this.inEndpoint.startPoll(1, this.MAX_PACKET_SIZE);
+
+      if (this.inEndpoint.descriptor?.wMaxPacketSize == undefined) {
+        throw new Error('InEndpoint does not contain information about max packet size!');
+      }
+
+      this.inEndpoint.startPoll(1, this.inEndpoint.descriptor.wMaxPacketSize);
       this.startListen();
       this.isPollingActive = true;
     }

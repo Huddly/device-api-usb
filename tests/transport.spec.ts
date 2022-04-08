@@ -113,20 +113,30 @@ describe('UsbTransport', () => {
 
   describe('#initEventLoop', () => {
     let startListenStub: sinon.SinonStub;
+    const customMaxPcktSize: number = 1000;
     beforeEach(async () => {
       await transport.init();
+      // @ts-ignore
+      transport.inEndpoint.descriptor = {
+        wMaxPacketSize: customMaxPcktSize
+      };
       startListenStub = sinon.stub(transport, 'startListen');
     });
     afterEach(() => {
       startListenStub.restore();
     });
 
-    it('should start the polling on read endpoint and call #startListen', () => {
+    it('should throw error if InEndpoint is missing packet size info', () => {
+      transport.inEndpoint.descriptor = undefined;
+      const badFn = () => transport.initEventLoop();
+      expect(badFn).throws('InEndpoint does not contain information about max packet size!');
+    });
+    it('should start the polling with maxPacketSize defined from wMaxPacketSize', () => {
       const stub = transport.inEndpoint.startPoll as unknown as sinon.SinonStub;
       transport.initEventLoop();
       expect(stub).to.have.been.calledOnce;
       expect(stub.firstCall.args[0]).to.equal(1);
-      expect(stub.firstCall.args[1]).to.equal(MAX_PACKET_SIZE);
+      expect(stub.firstCall.args[1]).to.equal(customMaxPcktSize);
       expect(startListenStub.callCount).to.equals(1);
     });
     it('should ignore redundent calls', () => {
@@ -136,7 +146,7 @@ describe('UsbTransport', () => {
       }
       expect(stub).to.have.been.calledOnce; // Including the call from the previous test
       expect(stub.firstCall.args[0]).to.equal(1);
-      expect(stub.firstCall.args[1]).to.equal(MAX_PACKET_SIZE);
+      expect(stub.firstCall.args[1]).to.equal(customMaxPcktSize);
       expect(startListenStub.callCount).to.equals(1);
     });
   });
@@ -639,6 +649,8 @@ describe('UsbTransport', () => {
         startListenStub = sinon.stub(NodeUsbTransport.prototype, 'startListen');
         startPollStub = transport.inEndpoint.startPoll as unknown as SinonStub;
         startPollStub.returns(true);
+        // @ts-ignore
+        transport.inEndpoint.descriptor = { wMaxPacketSize: 1024 };
       });
       afterEach(() => {
         startListenStub.restore();
