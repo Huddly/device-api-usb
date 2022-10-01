@@ -34,7 +34,11 @@ export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
   }
 
   async getValidatedTransport(device): Promise<ITransport> {
-    if ([HuddlyHEX.GO_PID, HuddlyHEX.L1_PID, HuddlyHEX.BASE_PID].includes(device.productId)) {
+    if (
+      [HuddlyHEX.GO_PID, HuddlyHEX.L1_PID, HuddlyHEX.BASE_PID, HuddlyHEX.S1_PID].includes(
+        device.productId
+      )
+    ) {
       Logger.warn(
         `HLink is not supported for Huddly device with PID ${device.productId}`,
         'Device API USB'

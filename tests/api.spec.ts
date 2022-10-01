@@ -25,7 +25,11 @@ const mockedDevices = [
   },
   {
     serialNumber: '534654324',
-    productId: 3e9
+    productId: 81000011
+  },
+  {
+    serialNumber: '534654324',
+    productId: 81000014
   },
 ];
 
@@ -69,8 +73,12 @@ describe('HuddlyDeviceApiUSB', () => {
         expect(transport).to.be.undefined;
       });
     });
-    describe('for huddly l1', () => {
+    describe('for ip cameras', () => {
       it('should not support huddly l1 devices', async () => {
+        const transport = await deviceApi.getValidatedTransport(mockedDevices[3]);
+        expect(transport).to.be.undefined;
+      });
+      it('should not support huddly s1 devices', async () => {
         const transport = await deviceApi.getValidatedTransport(mockedDevices[3]);
         expect(transport).to.be.undefined;
       });

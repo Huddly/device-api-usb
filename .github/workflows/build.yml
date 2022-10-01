@@ -74,7 +74,7 @@ jobs:
       - name: "Build (Win)"
         if: matrix.os == 'windows-latest' && matrix.node-version >= 14
         run: |
-          npm --add-python-to-path='true' --debug --global --production windows-build-tools
+          npm install --vs2015 --add-python-to-path='true' --debug --global --production windows-build-tools
           npm ci
           npm run tslint
           npm run prettier-check
@@ -86,7 +86,7 @@ jobs:
       - name: "Build (Win) Node 11 & 12"
         if: matrix.os == 'windows-latest' && matrix.node-version < 14
         run: |
-          npm --add-python-to-path='true' --debug --global --production windows-build-tools
+          npm install --vs2015 --add-python-to-path='true' --debug --global --production windows-build-tools
           npm ci
           npm run tslint
           npm run prettier-check
@@ -95,15 +95,8 @@ jobs:
           npm run test
           npm run audit-check
 
-      - name: "Build & Test (OSX & Linux)"
-        if: matrix.os != 'windows-latest'
-        run: |
-          npm ci
-          npm run tslint
-          npm run prettier-check
-          npm run build
-          npm test
-          npm run audit-check
+      - name: "Check for dependency vulnerabilities"
+        run: npm run audit-check
 
       - name: "Extract and export RELEASE_VERSION"
         if: success() && startsWith(github.ref, 'refs/tags/v')
