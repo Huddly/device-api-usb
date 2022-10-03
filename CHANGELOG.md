@@ -1,3 +1,9 @@
+#### 0.3.5 (2022-10-03)
+
+##### Bug Fixes
+
+*  ignoring S1 and new version of L1 pid ([05e4f23a](https://github.com/Huddly/device-api-usb/commit/05e4f23a58a16a833a27f54f05717ea6a077070e))
+
 #### 0.3.4 (2022-02-18)
 
 ##### Build System / Dependencies
