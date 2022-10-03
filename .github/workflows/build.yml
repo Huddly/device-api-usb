@@ -95,8 +95,15 @@ jobs:
           npm run test
           npm run audit-check
 
-      - name: "Check for dependency vulnerabilities"
-        run: npm run audit-check
+      - name: "Build & Test (OSX & Linux)"
+        if: matrix.os != 'windows-latest'
+        run: |
+          npm ci
+          npm run tslint
+          npm run prettier-check
+          npm run build
+          npm test
+          npm run audit-check
 
       - name: "Extract and export RELEASE_VERSION"
         if: success() && startsWith(github.ref, 'refs/tags/v')
