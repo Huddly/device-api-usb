@@ -1,3 +1,56 @@
+### 0.4.0 (2022-10-26)
+
+##### Chores
+
+*  updated sdk-interfaces ([7d14b45e](https://github.com/Huddly/device-api-usb/commit/7d14b45ebdbced690abbd34a9c9c01d0f3fcd1be))
+*  updated minimatch because of high severity vulnerability ([fd0a128a](https://github.com/Huddly/device-api-usb/commit/fd0a128a68a888ec4bc4bc3de94dcb3c7b102c7e))
+*  update prod & dev depedencies to latest releases ([065c7ebf](https://github.com/Huddly/device-api-usb/commit/065c7ebf1109d76cf3e79782280600189b128c4c))
+*  remove unused dependencies, audit, update sdk-intefaces version ([6a1f4a49](https://github.com/Huddly/device-api-usb/commit/6a1f4a4981d74c640ad60bb2d8cde1765942fb99))
+
+##### Continuous Integration
+
+*  temporarily disable cron trigger builds ([a592c1a0](https://github.com/Huddly/device-api-usb/commit/a592c1a0678eb8b695d7c5a27c8a8a4976ff9b8b))
+
+##### New Features
+
+*  delete libusb submodule ([fc603575](https://github.com/Huddly/device-api-usb/commit/fc603575d773b94eaef8b1974b2b1d64dadcf580))
+*  Remove scripts for binary upload/download to/from azure ([2d3fcb2a](https://github.com/Huddly/device-api-usb/commit/2d3fcb2a5ac8bc4851b374caf75ac53778fb700a))
+*  Update github actions ([e00aee17](https://github.com/Huddly/device-api-usb/commit/e00aee17717266d0a63185e156578e889efcde57))
+*  Updated ApiUsb lib with multicam support ([7967a19a](https://github.com/Huddly/device-api-usb/commit/7967a19ade693cd4e8885cade1d97e1682c0e230))
+*  Remove dependencies and scripts pkg.json ([ad35a05d](https://github.com/Huddly/device-api-usb/commit/ad35a05dba52e8ed0b7cf494d27510df5c4cc3a6))
+*  Remove all the cpp implementation & setup ([07ca6e59](https://github.com/Huddly/device-api-usb/commit/07ca6e59af15bea82897877ea53d9beebcb1abaa))
+
+##### Bug Fixes
+
+* **transport.ts:**  Use wMaxPacketSize for read ([3320e415](https://github.com/Huddly/device-api-usb/commit/3320e415b61b3d8c2d7cbf476b053793815e4a6a))
+*  Typo depricated -> deprecated ([c4f520e8](https://github.com/Huddly/device-api-usb/commit/c4f520e86f5f696bc1cf3b125f684cea6ab06804))
+*  usb api should not attempt to initialize s1 devices ([d35e6c3c](https://github.com/Huddly/device-api-usb/commit/d35e6c3cb8a8fadae6fe0bb1f527ecc86221bdbf))
+*  lock node-usb to 2.1.3 ([e24fb302](https://github.com/Huddly/device-api-usb/commit/e24fb30280c1dcc0b14bf92469464962893f1f62))
+*  node-usb buffer split wont work on ubuntu ([516c965a](https://github.com/Huddly/device-api-usb/commit/516c965a23cbdc2b406d91221492af327b1ccde9))
+*  nodeusb has build-in support for splitting data to chunks ([835ab42a](https://github.com/Huddly/device-api-usb/commit/835ab42aceefea48fc8d4ad00b423dbfd91b913a))
+*  Ignore usb errors on device detach ([98f09eaa](https://github.com/Huddly/device-api-usb/commit/98f09eaadff1daec671ccccfbc416928b09a1aca))
+*  On reset received...continue read ([54aaa6e9](https://github.com/Huddly/device-api-usb/commit/54aaa6e9651242e0580ea73aeccd727308cbba2a))
+*  Ignore LIBUSB_ERROR_NO_DEVICE on release ([e5a61d0d](https://github.com/Huddly/device-api-usb/commit/e5a61d0d600f85614fd0bd235f1da06acf8b9d2e))
+*  getDeviceFilter check serialNumber is set ([c85b4356](https://github.com/Huddly/device-api-usb/commit/c85b435668d8c8621ac6ed920e4e23bd4081b5c5))
+*  Dont try closing a closed device ([95964c51](https://github.com/Huddly/device-api-usb/commit/95964c51dc8b5b9d45c920505a3577d0f8522f9b))
+*  First letter of serialnr might be omitted ([86c0baf7](https://github.com/Huddly/device-api-usb/commit/86c0baf73130373046c73f0742b628baae23474b))
+*  getTransport handle uvc device instance ([8956c098](https://github.com/Huddly/device-api-usb/commit/8956c098b3a8f54aa8dddf64d6fa4298350418fd))
+*  Use npx on package.json scripts ([0a14189b](https://github.com/Huddly/device-api-usb/commit/0a14189b6da18533c29b589a23620c6210c82c2a))
+*  skipLibCheck on tsconfig file ([15277703](https://github.com/Huddly/device-api-usb/commit/15277703a080af066c1c519e5e3e23c1b6de5116))
+
+##### Other Changes
+
+*  Rewrite unit tests for new implementation ([29e647e0](https://github.com/Huddly/device-api-usb/commit/29e647e05158e5c25001a9358aa65bc19cc1e815))
+
+##### Refactors
+
+*  on reset seq during read, recover not possible ([da8aabf0](https://github.com/Huddly/device-api-usb/commit/da8aabf0a2955075b10e6a45a90338b8675ca9ce))
+*  Method visibiity update on manager.ts ([f6d632fd](https://github.com/Huddly/device-api-usb/commit/f6d632fd84b29e08741fa75ec70cd91bc8a57353))
+
+##### Tests
+
+*  Test private fuctions using rewire ([9d7e2b5b](https://github.com/Huddly/device-api-usb/commit/9d7e2b5bb9ce7b3b30a114765a2b328fa8895671))
+
 #### 0.3.4 (2022-02-18)
 
 ##### Build System / Dependencies
