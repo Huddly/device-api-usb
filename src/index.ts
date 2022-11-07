@@ -11,6 +11,13 @@ import { EventEmitter } from 'events';
 import DeviceDiscoveryManager, { UsbDevice } from './manager';
 import { usb } from 'usb';
 
+export const defaultPidsToIgnore = [
+  HuddlyHEX.GO_PID,
+  HuddlyHEX.L1_PID,
+  HuddlyHEX.S1_PID,
+  HuddlyHEX.BASE_PID,
+];
+
 export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
   private readonly className: string = 'Device-API-USB';
   eventEmitter: EventEmitter;
@@ -19,7 +26,7 @@ export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
   alwaysRetry: boolean;
 
   constructor(opts: DeviceApiOpts = {}) {
-    this.deviceDiscoveryManager = opts.manager || new DeviceDiscoveryManager();
+    this.deviceDiscoveryManager = opts.manager || new DeviceDiscoveryManager(opts.pidsToIgnore);
     this.maxSearchRetries = opts.maxSearchRetries || 10;
     this.alwaysRetry = opts.alwaysRetry || false;
   }
@@ -39,11 +46,7 @@ export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
   }
 
   async getValidatedTransport(device: usb.Device): Promise<ITransport> {
-    if (
-      [HuddlyHEX.GO_PID, HuddlyHEX.L1_PID, HuddlyHEX.S1_PID, HuddlyHEX.BASE_PID].includes(
-        (device as any as UsbDevice).productId
-      )
-    ) {
+    if (defaultPidsToIgnore.includes((device as any as UsbDevice).productId)) {
       Logger.warn(
         `HLink is not supported for Huddly device with PID ${
           (device as any as UsbDevice).productId
