@@ -273,4 +273,24 @@ describe('HuddlyUsbDeviceManager', () => {
       expect((device as unknown as UsbDevice).serialNumber).to.equal(mockedDevices[1].serialNumber);
     });
   });
+  describe('#isValidHuddlyDevice', () => {
+    it('should return true if huddly vid and valid pid', () => {
+      const usbDev = {
+        deviceDescriptor: { idProduct: HuddlyHEX.BOXFISH_PID, idVendor: HuddlyHEX.VID },
+      };
+      expect(devicemanager.isValidHuddlyDevice(usbDev)).to.equal(true);
+    });
+    it('should return false if huddly vid and invalid pid', () => {
+      const usbDev = {
+        deviceDescriptor: { idProduct: HuddlyHEX.BASE_PID, idVendor: HuddlyHEX.VID },
+      };
+      expect(devicemanager.isValidHuddlyDevice(usbDev)).to.equal(false);
+    });
+    it('should return false if not vid and valid pid', () => {
+      const usbDev = {
+        deviceDescriptor: { idProduct: HuddlyHEX.BOXFISH_PID, idVendor: 1000 },
+      };
+      expect(devicemanager.isValidHuddlyDevice(usbDev)).to.equal(false);
+    });
+  });
 });

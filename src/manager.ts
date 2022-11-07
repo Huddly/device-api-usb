@@ -4,7 +4,7 @@ import EventEmitter from 'events';
 import IDeviceDiscovery from '@huddly/sdk-interfaces/lib/interfaces/IDeviceDiscovery';
 import HuddlyHEX from '@huddly/sdk-interfaces/lib/enums/HuddlyHex';
 import Logger from '@huddly/sdk-interfaces/lib/statics/Logger';
-
+import { defaultPidsToIgnore } from './index';
 export interface UsbDevice {
   id: string;
   busNumber: number;
@@ -21,6 +21,11 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
   private readonly className: string = 'Device-API-USB Manager';
   private attachedDevices: Array<UsbDevice> = [];
   private eventEmitter: EventEmitter;
+  private pidsToIgnore: HuddlyHEX[];
+
+  constructor(pidsToIgnore?: HuddlyHEX[]) {
+    this.pidsToIgnore = pidsToIgnore || defaultPidsToIgnore;
+  }
 
   private newDeviceAttached(device: UsbDevice): void {
     this.attachedDevices.push(device);
@@ -105,7 +110,7 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
   registerForHotplugEvents(eventEmitter: EventEmitter): void {
     this.eventEmitter = eventEmitter;
     usb.on('attach', async (device: usb.Device) => {
-      if (device.deviceDescriptor.idVendor === HuddlyHEX.VID) {
+      if (this.isValidHuddlyDevice(device)) {
         if (await this.fetchAndPopulateDeviceParams(device)) {
           this.newDeviceAttached(device as any as UsbDevice);
           Logger.debug(
@@ -118,7 +123,7 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
     });
 
     usb.on('detach', (device: usb.Device) => {
-      if (device.deviceDescriptor.idVendor === HuddlyHEX.VID) {
+      if (this.isValidHuddlyDevice(device)) {
         Logger.debug(
           `Got DETACH event from device with serial ${(device as any as UsbDevice).serialNumber}`,
           this.className
@@ -141,8 +146,8 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
 
   async deviceList(doEmitNewDevices: boolean = false): Promise<usb.Device[]> {
     const usbDevices: usb.Device[] = this.getUnfilteredDeviceList();
-    const devices: usb.Device[] = usbDevices.filter(
-      (dev: usb.Device) => dev.deviceDescriptor.idVendor === HuddlyHEX.VID
+    const devices: usb.Device[] = usbDevices.filter((dev: usb.Device) =>
+      this.isValidHuddlyDevice(dev)
     );
     const foundDevices: usb.Device[] = [];
     for (let idx = 0; idx < devices.length; idx++) {
@@ -204,5 +209,12 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
       this.className
     );
     return undefined;
+  }
+
+  isValidHuddlyDevice(device: any) {
+    return (
+      device.deviceDescriptor.idVendor === HuddlyHEX.VID &&
+      !this.pidsToIgnore.includes(device.deviceDescriptor.idProduct)
+    );
   }
 }
