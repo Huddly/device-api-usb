@@ -1,3 +1,15 @@
+#### 0.4.1 (2022-11-08)
+
+##### Bug Fixes
+
+*  do not open devices if they should be excluded ([c172c3bd](https://github.com/Huddly/device-api-usb/commit/c172c3bda14ba218675d3979b382c456d1b0a0ae))
+
+#### 0.4.1 (2022-11-08)
+
+##### Bug Fixes
+
+*  do not open devices if they should be excluded ([c172c3bd](https://github.com/Huddly/device-api-usb/commit/c172c3bda14ba218675d3979b382c456d1b0a0ae))
+
 ### 0.4.0 (2022-10-26)
 
 ##### Chores
