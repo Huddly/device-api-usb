@@ -144,7 +144,10 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
     return getDeviceList();
   }
 
-  async deviceList(doEmitNewDevices: boolean = false): Promise<usb.Device[]> {
+  async deviceList(
+    doEmitNewDevices: boolean = false,
+    ignoreCache: boolean = false
+  ): Promise<usb.Device[]> {
     const usbDevices: usb.Device[] = this.getUnfilteredDeviceList();
     const devices: usb.Device[] = usbDevices.filter((dev: usb.Device) =>
       this.isValidHuddlyDevice(dev)
@@ -153,8 +156,9 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
     for (let idx = 0; idx < devices.length; idx++) {
       const uuid: string = this.getDeviceUUID(devices[idx]);
       if (
-        !this.isDeviceWithUUIDCached(uuid) &&
-        (await this.fetchAndPopulateDeviceParams(devices[idx]))
+        ignoreCache ||
+        (!this.isDeviceWithUUIDCached(uuid) &&
+          (await this.fetchAndPopulateDeviceParams(devices[idx])))
       ) {
         this.newDeviceAttached(devices[idx] as any as UsbDevice);
         // We assume that the device "Detach" event will take care of clearing up the device cache list
