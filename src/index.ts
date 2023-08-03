@@ -56,6 +56,16 @@ export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
     }
   }
 
+  async sleep(ms: number = 100): Promise<void> {
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        clearTimeout(timer);
+        resolve();
+      }, ms);
+    });
+  }
+
+
   async getTransport(device): Promise<NodeUsbTransport> {
     let usbDevice;
 
@@ -63,6 +73,7 @@ export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
     while ((this.alwaysRetry || i < this.maxSearchRetries) && !usbDevice) {
       usbDevice = await this.deviceDiscoveryManager.getDevice(device.serialNumber);
       i++;
+      await this.sleep();
     }
 
     const transport = new NodeUsbTransport(usbDevice);
