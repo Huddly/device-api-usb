@@ -9,6 +9,7 @@ import { EventEmitter } from 'events';
 import HuddlyHEX from '@huddly/sdk-interfaces/lib/enums/HuddlyHex';
 import { usb } from 'usb';
 
+
 const expect = chai.expect;
 chai.should();
 chai.use(sinonChai);
@@ -146,15 +147,18 @@ describe('HuddlyDeviceApiUSB', () => {
 
   describe('#getTransport', () => {
     let getDeviceStub: any;
+    let sleepStub: any;
+    let clock;
+
     const usbDevice: any = {
       serialNumber: 'B12344678',
-      open: () => {},
+      open: () => { },
       interfaces: {
         find: () => {
           return {
-            claim: () => {},
+            claim: () => { },
             endpoints: {
-              find: () => {}
+              find: () => { }
             }
           };
         }
@@ -162,10 +166,14 @@ describe('HuddlyDeviceApiUSB', () => {
     };
 
     beforeEach(() => {
+      clock = sinon.useFakeTimers();
+      sleepStub = sinon.stub(deviceApi, 'sleep').resolves();
       getDeviceStub = sinon.stub(dummyDeviceDiscoveryManager, 'getDevice').resolves(usbDevice);
     });
 
     afterEach(() => {
+      clock.restore();
+      sleepStub.restore();
       getDeviceStub.restore();
     });
 
@@ -200,12 +208,14 @@ describe('HuddlyDeviceApiUSB', () => {
         maxSearchRetries: 99,
       });
       getDeviceStub.resolves(undefined);
-      try {
-        await deviceApi.getTransport(usbDevice);
-      } catch (e) {
-        // Ok to fail
-      }
-      expect(getDeviceStub).to.have.callCount(99);
+      deviceApi.getTransport(usbDevice)
+        .then(() => {
+          expect(getDeviceStub).to.have.callCount(99);
+        })
+        .catch((e) => {
+          // Ok to fail
+        });
+      clock.tick(10000);
     });
 
 
@@ -218,10 +228,14 @@ describe('HuddlyDeviceApiUSB', () => {
         getDeviceStub.onCall(i).resolves(undefined);
       }
       getDeviceStub.onCall(78).resolves(usbDevice);
-      const transport = await deviceApi.getTransport(usbDevice);
-      expect(getDeviceStub).to.have.callCount(78);
-      expect(transport).to.be.instanceof(NodeUsbTransport);
-      expect(transport.device).to.deep.equal(usbDevice);
+
+      deviceApi.getTransport(usbDevice)
+        .then((transport) => {
+          expect(getDeviceStub).to.have.callCount(78);
+          expect(transport).to.be.instanceof(NodeUsbTransport);
+          expect(transport.device).to.deep.equal(usbDevice);
+        });
+      clock.tick(10000);
     });
   });
 

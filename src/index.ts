@@ -83,6 +83,7 @@ export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
       while ((this.alwaysRetry || i < this.maxSearchRetries) && !usbDevice) {
         usbDevice = await this.deviceDiscoveryManager.getDevice(otherDevice.serialNumber);
         i++;
+        await this.sleep();
       }
 
       if (!usbDevice) {
@@ -101,6 +102,15 @@ export default class HuddlyDeviceAPIUSB implements IHuddlyDeviceAPI {
     await transport.init();
     Logger.debug('Transport component initialized.', this.className);
     return transport;
+  }
+
+  async sleep(ms: number = 100): Promise<void> {
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        clearTimeout(timer);
+        resolve();
+      }, ms);
+    });
   }
 
   async isUVCControlsSupported(device: usb.Device): Promise<boolean> {
