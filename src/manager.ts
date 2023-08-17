@@ -38,6 +38,7 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
   }
 
   private isDeviceWithUUIDCached(uuid: string): boolean {
+    return false;
     return this.attachedDevices.some((dev) => dev.id === uuid);
   }
 
