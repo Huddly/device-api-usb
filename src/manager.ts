@@ -49,10 +49,9 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
   generateUsbUniqueId(props: {
     usbBusNumber: number;
     usbDeviceAddress: number;
-    usbPortNumbers: Array<Number>;
   }): string {
     const stringCombo: String = String(props.usbBusNumber).concat(
-      String(props.usbDeviceAddress).concat(props.usbPortNumbers.toString())
+      String(props.usbDeviceAddress)
     );
     let hash = 0;
     for (let i = 0; i < stringCombo.length; i++) {
@@ -67,7 +66,6 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
     const uid: string = this.generateUsbUniqueId({
       usbBusNumber: device.busNumber,
       usbDeviceAddress: device.deviceAddress,
-      usbPortNumbers: device.portNumbers,
     });
     return uid;
   }
