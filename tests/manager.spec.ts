@@ -109,7 +109,6 @@ describe('HuddlyUsbDeviceManager', () => {
       const deviceOneHash = devicemanager.generateUsbUniqueId({
         usbBusNumber: mockedDevices[0].busNumber,
         usbDeviceAddress: mockedDevices[0].deviceAddress,
-        usbPortNumbers: mockedDevices[0].portNumbers
       });
       expect(deviceOneHash).to.equal('46790582');
     });
@@ -129,7 +128,6 @@ describe('HuddlyUsbDeviceManager', () => {
       const generatedId = devicemanager.generateUsbUniqueId({
         usbBusNumber: DUT.busNumber,
         usbDeviceAddress: DUT.deviceAddress,
-        usbPortNumbers: DUT.portNumbers
       });
       expect(mockedDevices[0].id).to.equal(generatedId);
       expect(mockedDevices[0].serialNumber).to.equal('4D000042');

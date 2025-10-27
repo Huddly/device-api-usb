@@ -46,13 +46,8 @@ export default class DeviceDiscoveryManager implements IDeviceDiscovery {
     return this.attachedDevices;
   }
 
-  generateUsbUniqueId(props: {
-    usbBusNumber: number;
-    usbDeviceAddress: number;
-  }): string {
-    const stringCombo: String = String(props.usbBusNumber).concat(
-      String(props.usbDeviceAddress)
-    );
+  generateUsbUniqueId(props: { usbBusNumber: number; usbDeviceAddress: number }): string {
+    const stringCombo: String = String(props.usbBusNumber).concat(String(props.usbDeviceAddress));
     let hash = 0;
     for (let i = 0; i < stringCombo.length; i++) {
       const char = stringCombo.charCodeAt(i);
